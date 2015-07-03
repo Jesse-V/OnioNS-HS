@@ -1,0 +1,6 @@
+tor-onions-client (0.3.1.1~trusty) trusty; urgency=medium
+
+  * Initial build of hidden service functionality.
+  * Removed debugging symbols.
+
+ -- Jesse Victors <kernelcorn@riseup.net> Thur, 1 July 2015 22:45:00 -0400

@@ -2,7 +2,7 @@
 #ifndef HIDDEN_SERVICE_HPP
 #define HIDDEN_SERVICE_HPP
 
-#include "../common/records/Record.hpp"
+#include <onions-common/containers/records/Record.hpp>
 #include <botan/rsa.h>
 
 class HS

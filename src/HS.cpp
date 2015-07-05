@@ -1,11 +1,9 @@
 
 #include "HS.hpp"
-#include "../common/Common.hpp"
-#include "../common/records/CreateR.hpp"
-#include "../common/tcp/SocksClient.hpp"
-#include "../common/utils.hpp"
-#include "../common/Environment.hpp"
-#include "../Flags.hpp"
+#include <onions-common/containers/records/CreateR.hpp>
+#include <onions-common/tcp/SocksClient.hpp>
+#include <onions-common/utils.hpp>
+#include <onions-common/Flags.hpp>
 #include <iostream>
 
 
@@ -106,7 +104,7 @@ RecordPtr HS::promptForRecord() const
 
 bool HS::sendRecord(const RecordPtr& r) const
 {
-  auto socks = SocksClient::getCircuitTo(Env::get().getMirrorIP());
+  auto socks = SocksClient::getCircuitTo("129.123.7.8");
   if (!socks)
     throw std::runtime_error("Unable to connect!");
 

@@ -16,7 +16,9 @@ add_executable(onions-hs
     HS.cpp
 )
 
-target_link_libraries(onions-hs ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LIBRARIES})
+include_directories(/usr/include/onions-common/include /usr/include/botan-1.10)
+
+target_link_libraries(onions-hs onions-common onions-jsoncpp onions-cyoencode botan-1.10 ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LIBRARIES})
 
 #installation of files
 set(DEB_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/debian/extra_includes")

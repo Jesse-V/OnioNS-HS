@@ -1,7 +1,14 @@
+tor-onions-hs (0.3.2.6~trusty) trusty; urgency=medium
+
+  * Fixed missing dependency on tor-onions-common.
+  * Fixed missing linkage against pthread, necessary for armhf builds.
+
+ -- Jesse Victors <kernelcorn@riseup.net>  Mon, 06 Jul 2015 01:00:00 -0400
+
 tor-onions-hs (0.3.2.4~trusty) trusty; urgency=medium
 
-  * Initial build against onions-common library.
-  * Fixed compilation against onions-common headers.
+  * Initial build against tor-onions-common library.
+  * Fixed compilation against tor-onions-common headers.
 
  -- Jesse Victors <kernelcorn@riseup.net>  Sun, 5 July 2015 15:31:00 -0400
 

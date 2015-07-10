@@ -17,16 +17,16 @@ int main(int argc, char** argv)
                              POPT_ARG_STRING,
                              &keyPath,
                              11001,
-                             "Specifies a filepath for event logging.",
+                             "Specifies a path to a HS private key",
                              "<path>",
                             },
                             {
                              "license",
-                             'L',
+                             'l',
                              POPT_ARG_NONE,
                              &license,
                              11002,
-                             "Print software license and exit.",
+                             "Print software license and exit",
                             },
                             POPT_AUTOHELP{NULL}};
 

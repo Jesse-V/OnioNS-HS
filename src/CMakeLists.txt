@@ -6,20 +6,21 @@ find_package(Boost COMPONENTS system REQUIRED)
 
 #compiler options for Clang and GCC/G++
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "-g -O3 --std=c++11 -Wno-c++98-compat-pedantic -pedantic -Weverything -Wno-unused-parameter -Wno-global-constructors -Wno-exit-time-destructors -Wno-non-virtual-dtor -Wno-weak-vtables -Wno-padded -Wno-cast-align -Wno-gnu -Wno-nested-anon-types -Wno-documentation -Wno-documentation-unknown-command -Wno-unknown-pragmas -Wno-reserved-id-macro")
+  set(CMAKE_CXX_FLAGS "-g -O3 --std=c++11 -Wno-c++98-compat-pedantic -pedantic -Weverything -Wno-unused-parameter -Wno-global-constructors -Wno-exit-time-destructors -Wno-non-virtual-dtor -Wno-weak-vtables -Wno-padded -Wno-cast-align -Wno-gnu -Wno-nested-anon-types -Wno-documentation -Wno-documentation-unknown-command -Wno-unknown-pragmas -Wno-reserved-id-macro")
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS "-g -O3 --std=c++11 -Wall -Wextra -pedantic -Wdouble-promotion -Wfloat-equal -Wunsafe-loop-optimizations")
+  set(CMAKE_CXX_FLAGS "-g -O3 --std=c++11 -Wall -Wextra -pedantic -Wdouble-promotion -Wfloat-equal -Wunsafe-loop-optimizations")
 endif()
 
 add_executable(onions-hs
-    main.cpp
-    HS.cpp
+  main.cpp
+  HS.cpp
 )
 
 include_directories(/usr/include/onions-common/include /usr/include/botan-1.10)
 
-target_link_libraries(onions-hs onions-common onions-jsoncpp onions-cyoencode botan-1.10 pthread ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LIBRARIES})
+target_link_libraries(onions-hs onions-common onions-jsoncpp onions-cyoencode popt botan-1.10 pthread ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LIBRARIES})
 
 #installation of files
 set(DEB_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/debian/extra_includes")
-install(TARGETS onions-hs                DESTINATION /usr/bin/)
+install(TARGETS onions-hs                    DESTINATION /usr/bin/)
+install(FILES ${DEB_FOLDER}/onions-hs.1.gz   DESTINATION /usr/share/man/man1)

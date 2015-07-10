@@ -2,8 +2,8 @@
 #include "HS.hpp"
 #include <onions-common/containers/records/CreateR.hpp>
 #include <onions-common/tcp/SocksClient.hpp>
-#include <onions-common/utils.hpp>
-#include <onions-common/Flags.hpp>
+#include <onions-common/Config.hpp>
+#include <onions-common/Utils.hpp>
 #include <iostream>
 
 
@@ -95,7 +95,8 @@ RecordPtr HS::promptForRecord() const
   }
 
   std::cout << std::endl;
-  auto r = std::make_shared<CreateR>(loadKey(), name, pgp);
+  auto r = std::make_shared<CreateR>(
+      Utils::loadKey("/var/lib/tor-onions/example.key"), name, pgp);
   r->setSubdomains(list);
   return r;
 }
@@ -104,7 +105,8 @@ RecordPtr HS::promptForRecord() const
 
 bool HS::sendRecord(const RecordPtr& r) const
 {
-  auto socks = SocksClient::getCircuitTo("129.123.7.8");
+  auto addr = Config::getAuthority()[0];
+  auto socks = SocksClient::getCircuitTo(addr.asString(), addr.asInt());
   if (!socks)
     throw std::runtime_error("Unable to connect!");
 
@@ -117,23 +119,4 @@ bool HS::sendRecord(const RecordPtr& r) const
   }
 
   return true;
-}
-
-
-
-// ***************************** PRIVATE METHODS *****************************
-
-
-
-Botan::RSA_PrivateKey* HS::loadKey() const
-{
-  std::cout << "Opening HS key... ";
-
-  Botan::AutoSeeded_RNG rng;
-  Botan::RSA_PrivateKey* rsaKey =
-      Utils::loadKey(Flags::get().getKeyPath(), rng);
-  if (rsaKey != NULL)
-    std::cout << "done." << std::endl;
-
-  return rsaKey;
 }

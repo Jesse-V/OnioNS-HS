@@ -25,7 +25,10 @@ int main(int argc, char** argv)
       argc, poptGetContext(NULL, argc, const_cast<const char**>(argv), po, 0));
 
   if (license)
+  {
     std::cout << "Modified/New BSD License" << std::endl;
+    return EXIT_SUCCESS;
+  }
 
   HS::get().createRecord();
 

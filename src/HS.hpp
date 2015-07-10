@@ -8,22 +8,12 @@
 class HS
 {
  public:
-  static HS& get()
-  {
-    static HS instance;
-    return instance;
-  }
-
-  RecordPtr createRecord() const;
-  RecordPtr promptForRecord() const;
-  bool sendRecord(const RecordPtr&) const;
+  static RecordPtr createRecord();
+  static RecordPtr promptForRecord();
+  static bool sendRecord(const RecordPtr&);
 
  private:
-  HS() {}
-  HS(HS const&) = delete;
-  void operator=(HS const&) = delete;
-
-  Botan::RSA_PrivateKey* loadKey() const;
+  static Botan::RSA_PrivateKey* loadKey();
 };
 
 #endif

@@ -7,7 +7,7 @@
 #include <iostream>
 
 
-RecordPtr HS::createRecord() const
+RecordPtr HS::createRecord()
 {
   auto r = promptForRecord();
 
@@ -31,7 +31,7 @@ RecordPtr HS::createRecord() const
 
 
 
-RecordPtr HS::promptForRecord() const
+RecordPtr HS::promptForRecord()
 {
   std::cout
       << "Here you can claim a domain name and multiple subdomains for your"
@@ -103,7 +103,7 @@ RecordPtr HS::promptForRecord() const
 
 
 
-bool HS::sendRecord(const RecordPtr& r) const
+bool HS::sendRecord(const RecordPtr& r)
 {
   auto addr = Config::getAuthority()[0];
   auto socks = SocksClient::getCircuitTo(addr.asString(), addr.asInt());

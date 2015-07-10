@@ -30,7 +30,7 @@ int main(int argc, char** argv)
     return EXIT_SUCCESS;
   }
 
-  HS::get().createRecord();
+  HS::createRecord();
 
   return EXIT_SUCCESS;
 }

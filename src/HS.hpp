@@ -11,9 +11,10 @@ class HS
   static RecordPtr createRecord();
   static RecordPtr promptForRecord();
   static bool sendRecord(const RecordPtr&);
+  static void setKeyPath(const std::string&);
 
  private:
-  static Botan::RSA_PrivateKey* loadKey();
+  static std::string keyPath_;
 };
 
 #endif

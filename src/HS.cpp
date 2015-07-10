@@ -6,6 +6,8 @@
 #include <onions-common/Utils.hpp>
 #include <iostream>
 
+std::string HS::keyPath_;
+
 
 RecordPtr HS::createRecord()
 {
@@ -95,8 +97,7 @@ RecordPtr HS::promptForRecord()
   }
 
   std::cout << std::endl;
-  auto r = std::make_shared<CreateR>(
-      Utils::loadKey("/var/lib/tor-onions/example.key"), name, pgp);
+  auto r = std::make_shared<CreateR>(Utils::loadKey(keyPath_), name, pgp);
   r->setSubdomains(list);
   return r;
 }
@@ -106,7 +107,8 @@ RecordPtr HS::promptForRecord()
 bool HS::sendRecord(const RecordPtr& r)
 {
   auto addr = Config::getAuthority()[0];
-  auto socks = SocksClient::getCircuitTo(addr["ip"].asString(), addr["port"].asInt());
+  auto socks =
+      SocksClient::getCircuitTo(addr["ip"].asString(), addr["port"].asInt());
   if (!socks)
     throw std::runtime_error("Unable to connect!");
 
@@ -119,4 +121,11 @@ bool HS::sendRecord(const RecordPtr& r)
   }
 
   return true;
+}
+
+
+
+void HS::setKeyPath(const std::string& keyPath)
+{
+  keyPath_ = keyPath;
 }

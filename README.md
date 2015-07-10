@@ -37,6 +37,16 @@ I provide amd64 .deb builds in the [Releases section](https://github.com/Jesse-V
 
 The ClangBuild.sh script is available if you prefer the Clang compiler. This script is recommended if you are developing or hacking OnioNS. You will need to install *clang-format-3.6* before running that as ClangBuild.sh will also re-style your code to the official development style, which is based on Chromium.
 
+### Usage
+
+The hidden service edition of the OnioNS software is primarily a command-line utility. Currently it supports the ability to claim a domain name, a number of sub-domains, and send this information over a Tor circuit to the OnioNS network.
+
+> 1. Create a hidden service. This usually involves un-commenting the relevent HS lines in your Tor torrc configuration file, then setting up a web server. This software is designed for hidden service operators, so this should be a familiar process. As this is beta software, I do not recommend using a valuable hidden service in production, so I recommend making a new one to try out.
+> 1. **onions-hs --hsKey <path to HS key>**
+> 2. Follow the on-screen instructions. You may claim a single .tor domain (which will point to your hidden service) and up to 24 subdomains, which must point to a .tor or .onion address of your choosing.
+
+For your convenience, I have generated a key that you may experiment with, via *onions-hs --hsKey /var/lib/tor-onions/example.key* I do not recommend using this key for a hidden service as others have access to this private key.
+
 ### Bug Reporting
 
 Please open a ticket on Github. If you do not have a Github account, please contact kernelcorn on #tor-dev on OFTC IRC, or email kernelcorn at riseup dot net. Please follow the same process for filing enhancement requests. I use PGP key 0xC20BEC80. I accept pull requests if you want to contribute.

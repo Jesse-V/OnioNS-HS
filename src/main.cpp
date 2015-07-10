@@ -8,10 +8,19 @@ Botan::LibraryInitializer init("thread_safe");
 
 int main(int argc, char** argv)
 {
-  char* logPath;
+  char* keyPath = NULL, logPath = NULL;
   bool license = false;
 
   struct poptOption po[] = {{
+                             "hsKey",
+                             'k',
+                             POPT_ARG_STRING,
+                             &keyPath,
+                             11001,
+                             "Specifies a filepath for event logging.",
+                             "<path>",
+                            },
+                            {
                              "license",
                              'L',
                              POPT_ARG_NONE,
@@ -28,6 +37,18 @@ int main(int argc, char** argv)
   {
     std::cout << "Modified/New BSD License" << std::endl;
     return EXIT_SUCCESS;
+  }
+
+  if (keyPath)
+  {
+    HS::setKeyPath(keyPath);
+    if (!Utils::loadKey(keyPath))  // test if it can be loaded
+      return EXIT_FAILURE;
+  }
+  else
+  {
+    std::cerr << "Missing path to HS key! Specify with -k or --hsKey!\n";
+    return EXIT_FAILURE;
   }
 
   HS::createRecord();

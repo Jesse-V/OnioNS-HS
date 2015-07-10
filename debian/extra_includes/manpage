@@ -27,13 +27,13 @@ transmitting it anonymously to the OnioNS network.
 .SH "COMMAND-LINE OPTIONS"
 
 .PP
-\fB-?\fR,\fB--help\fR
+\fB-?\fR, \fB--help\fR
 .RS 4
 Prints a list of flags, their descriptions, and then exits.
 .RE
 
 .PP
-\fB-k\fR,\fB--hsKey\fIPATH\fR
+\fB-k\fR, \fB--hsKey\fIPATH\fR
 .RS 4
 The path to the hidden service private RSA key, used to sign the claim on a domain name.
 .RE

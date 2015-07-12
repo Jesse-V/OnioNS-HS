@@ -41,9 +41,9 @@ The ClangBuild.sh script is available if you prefer the Clang compiler. This scr
 
 The hidden service edition of the OnioNS software is primarily a command-line utility. Currently it supports the ability to claim a domain name, a number of sub-domains, and send this information over a Tor circuit to the OnioNS network.
 
-> 1. Create a hidden service. This usually involves un-commenting the relevent HS lines in your Tor torrc configuration file, then setting up a web server. This software is designed for hidden service operators, so this should be a familiar process. As this is beta software, I do not recommend using a valuable hidden service in production, so I recommend making a new one to try out.
-> 1. **onions-hs --hsKey <path to HS key>**
-> 2. Follow the on-screen instructions. You may claim a single .tor domain (which will point to your hidden service) and up to 24 subdomains, which must point to a .tor or .onion address of your choosing.
+> 1. Create a hidden service. See [this guide](https://www.torproject.org/docs/tor-hidden-service) for instructions on how to do this. As this is beta software, I do not recommend using a valuable hidden service in production, so I recommend making a new one for testing purposes.
+> 2. **onions-hs --hsKey <path to HS key>**
+> 3. Follow the on-screen instructions. You may claim a single .tor domain (which will point to your hidden service) and up to 24 subdomains, which must point to a .tor or .onion address of your choosing.
 
 For your convenience, I have generated a key that you may experiment with, via *onions-hs --hsKey /var/lib/tor-onions/example.key* I do not recommend using this key for a hidden service as others have access to this private key.
 

@@ -62,7 +62,10 @@ RecordPtr HS::promptForRecord()
   {
     std::cout << "Your PGP fingerprint: ";
     std::getline(std::cin, pgp);  //"AD97364FC20BEC80"
+
     pgp = Utils::trimString(pgp);
+    if (pgp.empty())
+      break;
   }
 
   std::cout << "\nYou may provide up to 24 subdomain-destination pairs.\n"
@@ -126,6 +129,8 @@ bool HS::sendRecord(const RecordPtr& r)
     std::cerr << "Err: " << received["error"].asString() << std::endl;
     return false;
   }
+
+  std::cout << "Record accepted, your claim has been accepted." << std::endl;
 
   return true;
 }

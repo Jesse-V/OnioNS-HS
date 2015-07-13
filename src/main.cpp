@@ -51,7 +51,8 @@ int main(int argc, char** argv)
     return EXIT_FAILURE;
   }
 
-  HS::createRecord();
+  auto r = HS::createRecord();
+  HS::sendRecord(r);
 
   return EXIT_SUCCESS;
 }

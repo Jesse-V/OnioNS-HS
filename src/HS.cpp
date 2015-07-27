@@ -130,7 +130,7 @@ bool HS::sendRecord(const RecordPtr& r)
     return false;
   }
 
-  std::cout << "Record accepted, your claim has been accepted." << std::endl;
+  std::cout << "Record upload complete; your claim has been accepted.\n";
 
   return true;
 }

@@ -21,6 +21,6 @@ include_directories(/usr/include/onions-common/include /usr/include/botan-1.10)
 target_link_libraries(onions-hs onions-common onions-jsoncpp onions-cyoencode popt botan-1.10 pthread ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LIBRARIES})
 
 #installation of files
-set(DEB_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/debian/extra_includes")
+set(DEB_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/assets")
 install(TARGETS onions-hs                    DESTINATION /usr/bin/)
 install(FILES ${DEB_FOLDER}/onions-hs.1.gz   DESTINATION /usr/share/man/man1)

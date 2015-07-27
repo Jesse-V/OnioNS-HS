@@ -19,9 +19,9 @@ There are several methods to install the OnioNS software. The method of choice d
 
 * **Install from PPA**
 
-> 1. *sudo add-apt-repository ppa:jvictors/tor-dev*
-> 2. *sudo apt-get update*
-> 3. *sudo apt-get install tor-onions-hs*
+> 1. **sudo add-apt-repository ppa:jvictors/tor-dev**
+> 2. **sudo apt-get update**
+> 3. **sudo apt-get install tor-onions-hs**
 
 This is the recommended method as it's very easy to stay up-to-date with my releases.
 
@@ -37,7 +37,7 @@ I provide builds for Debian Wheezy in the [Releases section](https://github.com/
 
 The rebuild.sh script is available if you are actively developing OnioNS. You will need to install *clang-format-3.6* and *cppcheck* as the script also styles the code and performs a static analysis check.
 
-You can cleanup your build with *rm -rf build*
+You can cleanup your build with **rm -rf build**
 
 ### Usage
 

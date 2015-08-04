@@ -1,3 +1,18 @@
+tor-onions-hs (0.4.0.0~trusty) trusty; urgency=medium
+
+  * Automatic uploading of new Records to a Quorum server.
+  * Clarified many registration prompts.
+  * Added dependency for a system installation of Tor.
+  * Standardized the build process.
+  * Replaced SourceForge tclap library with standard Linux popt.
+  * Created onions-hs manpage.
+  * Standardized the build process.
+  * Improved git commit styles to match common standard.
+  * Clarified README.
+  * Many bug fixes.
+
+ -- Jesse Victors <kernelcorn@riseup.net>  Tues, 04 Aug 2015 09:00:00 -0800
+
 tor-onions-hs (0.3.2.6~trusty) trusty; urgency=medium
 
   * Fixed missing dependency on tor-onions-common.

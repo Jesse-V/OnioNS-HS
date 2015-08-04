@@ -2,7 +2,7 @@ Source: tor-onions-hs
 Section: net
 Priority: optional
 Maintainer: Jesse Victors <kernelcorn@riseup.net>
-Build-Depends: debhelper (>= 7), g++, cmake, make, dpkg-dev, libbotan1.10-dev, libasio-dev, libboost-system-dev, tor, tor-onions-common (>= 0.3.3)
+Build-Depends: debhelper (>= 7), g++, cmake, make, dpkg-dev, libbotan1.10-dev, libasio-dev, libboost-system-dev, tor, tor-onions-common (>= 0.4)
 Standards-Version: 3.9.5
 Homepage: http://onions.jessevictors.com
 Bugs: https://github.com/Jesse-V/OnioNS-HS/issues
@@ -24,4 +24,4 @@ Description: Tor-powered distributed DNS for Tor hidden services
  onions55e7yam27n.onion, which is example.tor under OnioNS.
  .
  This package provides functionality for the hidden service operator, such as
- the ability to claim an OnioNS domain name.
+ the ability to claim a domain name.

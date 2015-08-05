@@ -117,8 +117,8 @@ RecordPtr HS::promptForRecord()
 bool HS::sendRecord(const RecordPtr& r)
 {
   auto addr = Config::getAuthority()[0];
-  auto socks = SocksClient::getCircuitTo(addr["ip"].asString(),
-                                         addr["port"].asInt(), 9050);
+  auto socks = SocksClient::getCircuitTo(
+      addr["ip"].asString(), static_cast<short>(addr["port"].asInt()), 9050);
   if (!socks)
     throw std::runtime_error("Unable to connect!");
 

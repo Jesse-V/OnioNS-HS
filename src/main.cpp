@@ -4,11 +4,11 @@
 #include <botan/botan.h>
 #include <iostream>
 
-Botan::LibraryInitializer init("thread_safe");
+// Botan::LibraryInitializer init("thread_safe");
 
 int main(int argc, char** argv)
 {
-  char* keyPath = NULL, logPath = NULL;
+  char* keyPath = 0;
   bool license = false;
 
   struct poptOption po[] = {{
@@ -20,18 +20,21 @@ int main(int argc, char** argv)
                              "Specifies a path to a HS private key",
                              "<path>",
                             },
-                            {
-                             "license",
+                            {"license",
                              'l',
                              POPT_ARG_NONE,
                              &license,
                              11002,
                              "Print software license and exit",
-                            },
-                            POPT_AUTOHELP{NULL}};
+                             NULL},
+                            POPT_AUTOHELP{NULL, 0, 0, NULL, 0, NULL, NULL}};
 
-  bool b = Utils::parse(
-      argc, poptGetContext(NULL, argc, const_cast<const char**>(argv), po, 0));
+  if (!Utils::parse(
+          poptGetContext(NULL, argc, const_cast<const char**>(argv), po, 0)))
+  {
+    std::cout << "Failed to parse command-line arguments. Aborting.\n";
+    return EXIT_FAILURE;
+  }
 
   if (license)
   {

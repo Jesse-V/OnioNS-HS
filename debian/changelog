@@ -1,4 +1,4 @@
-tor-onions-hs (0.4.0.0~trusty) trusty; urgency=medium
+tor-onions-hs (0.4.0.2~trusty) trusty; urgency=medium
 
   * Automatic uploading of new Records to a Quorum server.
   * Clarified many registration prompts.

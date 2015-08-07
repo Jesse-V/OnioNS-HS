@@ -107,6 +107,8 @@ RecordPtr HS::promptForRecord()
 
   std::cout << std::endl;
   auto r = std::make_shared<CreateR>(Utils::loadKey(keyPath_), name, pgp);
+  std::cout << "hi\n";
+  std::cout.flush();
   r->setSubdomains(list);
 
   return r;
@@ -116,7 +118,7 @@ RecordPtr HS::promptForRecord()
 
 bool HS::sendRecord(const RecordPtr& r)
 {
-  auto addr = Config::getAuthority()[0];
+  auto addr = Config::getQuorumNode()[0];
   auto socks = SocksClient::getCircuitTo(
       addr["ip"].asString(), static_cast<short>(addr["port"].asInt()), 9050);
   if (!socks)
@@ -124,9 +126,9 @@ bool HS::sendRecord(const RecordPtr& r)
 
   std::cout << "Uploading Record..." << std::endl;
   auto received = socks->sendReceive("upload", r->asJSON());
-  if (received.isMember("error"))
+  if (received["type"].asString() == "error")
   {
-    std::cerr << "Err: " << received["error"].asString() << std::endl;
+    std::cerr << "Err: " << received["value"].asString() << std::endl;
     return false;
   }
 

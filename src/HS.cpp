@@ -3,6 +3,7 @@
 #include <onions-common/containers/records/CreateR.hpp>
 #include <onions-common/tcp/SocksClient.hpp>
 #include <onions-common/Config.hpp>
+#include <onions-common/Log.hpp>
 #include <onions-common/Utils.hpp>
 #include <iostream>
 
@@ -107,8 +108,6 @@ RecordPtr HS::promptForRecord()
 
   std::cout << std::endl;
   auto r = std::make_shared<CreateR>(Utils::loadKey(keyPath_), name, pgp);
-  std::cout << "hi\n";
-  std::cout.flush();
   r->setSubdomains(list);
 
   return r;
@@ -128,7 +127,7 @@ bool HS::sendRecord(const RecordPtr& r)
   auto received = socks->sendReceive("upload", r->asJSON());
   if (received["type"].asString() == "error")
   {
-    std::cerr << "Err: " << received["value"].asString() << std::endl;
+    Log::get().error(received["value"].asString());
     return false;
   }
 

@@ -47,13 +47,19 @@ Prints license information and then exits.
 .PP
 \fB-p\fR, \fB--port\fR
 .RS 4
-Specifies the SOCKS port to be used to anonymize claims as they are sent to OnioNS servers. The default value is 9050, which is typically used by system-wide Tor installations.
+Specifies the SOCKS port to be used to anonymize Record (claims) as they are sent to OnioNS servers. The default value is 9050, which is typically used by system-wide Tor installations.
 .RE
 
 .PP
 \fB --usage \fR
 .RS 4
 Displays a brief usage message and then exits.
+.RE
+
+.PP
+\fB-w\fR, \fB--workers\fR
+.RS 4
+Specifies the number of worker threads to use to make a Record (claim) valid. The default value is the number of available CPU cores, as specified by /proc/cpuinfo.
 .RE
 
 .SH "SEE ALSO"

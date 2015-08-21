@@ -8,7 +8,7 @@
 class HS
 {
  public:
-  static RecordPtr createRecord();
+  static RecordPtr createRecord(uint8_t workers);
   static RecordPtr promptForRecord();
   static bool sendRecord(const RecordPtr&, short socksPort);
   static void setKeyPath(const std::string&);

@@ -10,7 +10,7 @@
 std::string HS::keyPath_;
 
 
-RecordPtr HS::createRecord()
+RecordPtr HS::createRecord(uint8_t workers)
 {
   auto r = promptForRecord();
 
@@ -19,7 +19,7 @@ RecordPtr HS::createRecord()
   std::string tmp;
   std::getline(std::cin, tmp);
 
-  r->makeValid(4);
+  r->makeValid(workers);
 
   std::cout << std::endl;
   std::cout << *r << std::endl;

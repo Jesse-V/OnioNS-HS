@@ -10,6 +10,7 @@ int main(int argc, char** argv)
 {
   char* keyPath = 0;
   bool license = false;
+  short port = 9050;
 
   struct poptOption po[] = {{
                              "hsKey",
@@ -20,6 +21,14 @@ int main(int argc, char** argv)
                              "Specifies a path to a HS private key",
                              "<path>",
                             },
+                            {"port",
+                             'p',
+                             POPT_ARG_SHORT,
+                             &port,
+                             0,
+                             "SOCKS port to use for anonymizing claims on "
+                             "domain names. The default is 9050.",
+                             "<port>"},
                             {"license",
                              'l',
                              POPT_ARG_NONE,
@@ -55,7 +64,7 @@ int main(int argc, char** argv)
   }
 
   auto r = HS::createRecord();
-  HS::sendRecord(r);
+  HS::sendRecord(r, port);
 
   return EXIT_SUCCESS;
 }

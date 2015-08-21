@@ -115,11 +115,12 @@ RecordPtr HS::promptForRecord()
 
 
 
-bool HS::sendRecord(const RecordPtr& r)
+bool HS::sendRecord(const RecordPtr& r, short socksPort)
 {
   auto addr = Config::getQuorumNode()[0];
   auto socks = SocksClient::getCircuitTo(
-      addr["ip"].asString(), static_cast<short>(addr["port"].asInt()), 9050);
+      addr["ip"].asString(), static_cast<short>(addr["port"].asInt()),
+      socksPort);
   if (!socks)
     throw std::runtime_error("Unable to connect!");
 

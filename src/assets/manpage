@@ -7,7 +7,7 @@ Services \- Hidden Service Edition
 
 .SH SYNOPSIS
 .sp
-onions-hs\fR [\fB--help\fR|\fB--license\fR|\fB--hsKey\fR]
+onions-hs\fR [\fB--help\fR|\fB--license\fR|\fB--hsKey\fR|\fB--port\fR]
 
 .SH DESCRIPTION
 .sp
@@ -33,7 +33,7 @@ Prints a list of flags, their descriptions, and then exits.
 .RE
 
 .PP
-\fB-k\fR, \fB--hsKey\fIPATH\fR
+\fB-k\fR, \fB--hsKey\fI PATH\fR
 .RS 4
 The path to the hidden service private RSA key, used to sign the claim on a domain name.
 .RE
@@ -42,6 +42,12 @@ The path to the hidden service private RSA key, used to sign the claim on a doma
 \fB-l\fR,\fB--license\fR
 .RS 4
 Prints license information and then exits.
+.RE
+
+.PP
+\fB-p\fR, \fB--port\fR
+.RS 4
+Specifies the SOCKS port to be used to anonymize claims as they are sent to OnioNS servers. The default value is 9050, which is typically used by system-wide Tor installations.
 .RE
 
 .PP

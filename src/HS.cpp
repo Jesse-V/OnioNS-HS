@@ -1,7 +1,7 @@
 
 #include "HS.hpp"
 #include <onions-common/containers/records/CreateR.hpp>
-#include <onions-common/tcp/SocksClient.hpp>
+#include <onions-common/tcp/TorStream.hpp>
 #include <onions-common/Config.hpp>
 #include <onions-common/Log.hpp>
 #include <onions-common/Utils.hpp>
@@ -117,15 +117,13 @@ RecordPtr HS::promptForRecord()
 
 bool HS::sendRecord(const RecordPtr& r, short socksPort)
 {
-  auto addr = Config::getQuorumNode()[0];
-  auto socks = SocksClient::getCircuitTo(
-      addr["ip"].asString(), static_cast<short>(addr["port"].asInt()),
-      socksPort);
-  if (!socks)
-    throw std::runtime_error("Unable to connect!");
+  auto nodeConf = Config::getQuorumNode()[0];
+  const auto SERVER_PORT = Const::SERVER_PORT;
+  TorStream quorumNode("127.0.0.1", socksPort, nodeConf["addr"].asString(),
+                       SERVER_PORT);
 
   std::cout << "Uploading Record..." << std::endl;
-  auto received = socks->sendReceive("upload", r->asJSON());
+  auto received = quorumNode.sendReceive("upload", r->asJSON());
   if (received["type"].asString() == "error")
   {
     Log::get().error(received["value"].asString());

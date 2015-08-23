@@ -47,7 +47,7 @@ Prints license information and then exits.
 .PP
 \fB-p\fR, \fB--port\fR
 .RS 4
-Specifies the SOCKS port to be used to anonymize Record (claims) as they are sent to OnioNS servers. The default value is 9050, which is typically used by system-wide Tor installations.
+Specifies Tor's SOCKS5 port, used for communication to hidden services. The default value is 9050, the default port used by system installations of Tor.
 .RE
 
 .PP

@@ -117,10 +117,9 @@ RecordPtr HS::promptForRecord()
 
 bool HS::sendRecord(const RecordPtr& r, short socksPort)
 {
-  boost::asio::io_service ios;
   auto nodeConf = Config::getQuorumNode()[0];
   const auto SERVER_PORT = Const::SERVER_PORT;
-  TorStream quorumNode(ios, "127.0.0.1", socksPort, nodeConf["addr"].asString(),
+  TorStream quorumNode("127.0.0.1", socksPort, nodeConf["addr"].asString(),
                        SERVER_PORT);
 
   std::cout << "Uploading Record..." << std::endl;

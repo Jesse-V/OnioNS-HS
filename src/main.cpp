@@ -1,12 +1,18 @@
 
 #include "HS.hpp"
+#include <onions-common/Common.hpp>
+#include <onions-common/Log.hpp>
 #include <onions-common/Utils.hpp>
 #include <botan/botan.h>
 #include <fstream>
 #include <iostream>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <pwd.h>
 
 // Botan::LibraryInitializer init("thread_safe");
 
+void manageRecord(uint8_t, short);
 uint8_t countAvailableCPUs();
 
 int main(int argc, char** argv)
@@ -74,10 +80,39 @@ int main(int argc, char** argv)
     return EXIT_FAILURE;
   }
 
-  auto r = HS::createRecord(workers);
-  HS::sendRecord(r, port);
+  manageRecord(workers, port);
 
   return EXIT_SUCCESS;
+}
+
+
+void manageRecord(uint8_t workers, short port)
+{
+  std::string workingDir(getpwuid(getuid())->pw_dir);
+  workingDir += "/.OnioNS/";
+
+  std::ifstream recordFile;
+  recordFile.open(workingDir + "record.save", std::fstream::in);
+  if (recordFile.is_open())
+  {
+    Log::get().notice("Loading cached Record from disk...");
+
+    Json::Value obj;
+    recordFile >> obj;
+    HS::sendRecord(Common::parseRecord(obj), port);
+  }
+  else
+  {
+    auto r = HS::createRecord(workers);
+
+    Log::get().notice("Caching Record to disk...");
+    mkdir(workingDir.c_str(), 0755);
+    std::fstream recordOut(workingDir + "record.save", std::fstream::out);
+    recordOut << r->asJSON();
+    recordOut.close();
+
+    HS::sendRecord(r, port);
+  }
 }
 
 

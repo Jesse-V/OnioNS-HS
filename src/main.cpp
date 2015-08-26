@@ -83,15 +83,13 @@ int main(int argc, char** argv)
 
 uint8_t countAvailableCPUs()
 {
-  std::fstream cpuinfo("/proc/cpuinfo");
-  if (!cpuinfo)
+  std::ifstream cpuinfo;
+  cpuinfo.open("/proc/cpuinfo", std::fstream::in);
+  if (!cpuinfo.is_open())
   {
     std::cerr << "Cannot open /proc/cpuinfo" << std::endl;
-    return EXIT_FAILURE;
+    exit(EXIT_FAILURE);
   }
-
-  // std::string cpuStr((std::istreambuf_iterator<char>(cpuinfo)),
-  //                     std::istreambuf_iterator<char>());
 
   // grep -c ^processor /proc/cpuinfo
   uint8_t cpus = 0;

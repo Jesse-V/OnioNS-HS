@@ -1,3 +1,13 @@
+tor-onions-hs (0.6.0.0~trusty) trusty; urgency=medium
+
+  * Save newly-generated Record to disk before upload. (#8)
+  * Send Records to Quorum nodes hosted by hidden services.
+  * Remove dependency on Tor. (#3)
+  * Introduce flag to specify Tor's SOCKS port. (#5)
+  * Introduce flag to specify number of worker threads. (#4)
+
+ -- Jesse Victors <kernelcorn@riseup.net>  Wed, 26 Aug 2015 23:00:00 -0800
+
 tor-onions-hs (0.5.0.0~trusty) trusty; urgency=medium
 
   * Reduced most compiler and static analysis warnings.

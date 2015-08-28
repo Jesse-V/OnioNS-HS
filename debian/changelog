@@ -1,4 +1,4 @@
-tor-onions-hs (0.6.0.0~trusty) trusty; urgency=medium
+tor-onions-hs (0.6.0.3~trusty) trusty; urgency=medium
 
   * Save newly-generated Record to disk before upload. (#8)
   * Send Records to Quorum nodes hosted by hidden services.

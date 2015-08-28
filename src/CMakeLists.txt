@@ -18,7 +18,7 @@ add_executable(onions-hs
 
 include_directories(/usr/include/onions-common/include /usr/include/botan-1.10 /usr/include/jsoncpp)
 
-target_link_libraries(onions-hs onions-common onions-cyoencode jsoncpp scrypt popt botan-1.10 ${Boost_SYSTEM_LIBRARY} ${Boost_LIBRARIES})
+target_link_libraries(onions-hs onions-common onions-cyoencode jsoncpp popt botan-1.10 ${Boost_SYSTEM_LIBRARY} ${Boost_LIBRARIES})
 
 #installation of files
 set(ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/assets")

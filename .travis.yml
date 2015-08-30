@@ -8,7 +8,15 @@ before_install:
   - sudo apt-get install -qq g++ clang cmake libpopt-dev botan1.10-dev libasio-dev libboost-system-dev libjsoncpp-dev
 script:
   - git clone https://github.com/Jesse-V/OnioNS-common.git
-  - (cd OnioNS-common; mkdir build; cd build; cmake ../src; make; sudo make install)
+  - cd OnioNS-common
+  - (cd src/libs/libscrypt && make)
+  - package=tor-onions-common_$(grep -m 1 -o '(.*)' debian/changelog | cut -c 2- | rev | cut -c 2- | rev)
+  - tar -czf $package.orig.tar.gz src/
+  - cp -rl debian src/debian
+  - cd src/
+  - dpkg-buildpackage -rfakeroot -us -uc
+  - sudo dpkg -i ../$package_amd64.deb
+  - cd ../../
   - package=tor-onions-hs_$(grep -m 1 -o '(.*)' debian/changelog | cut -c 2- | rev | cut -c 2- | rev)
   - tar -czf $package.orig.tar.gz src/
   - cp -rl debian src/debian

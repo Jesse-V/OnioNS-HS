@@ -15,7 +15,7 @@ script:
   - cp -rl debian src/debian
   - cd src/
   - dpkg-buildpackage -rfakeroot -us -uc
-  - sudo dpkg -i ../$package_amd64.deb
+  - sudo dpkg -i $package_amd64.deb
   - cd ../../
   - package=tor-onions-hs_$(grep -m 1 -o '(.*)' debian/changelog | cut -c 2- | rev | cut -c 2- | rev)
   - tar -czf $package.orig.tar.gz src/

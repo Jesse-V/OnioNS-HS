@@ -60,5 +60,5 @@ target_link_libraries(onions-hs ${onions-common} ${onions-cyoencode}
 
 #installation of files
 set(ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/assets")
-install(TARGETS onions-hs                DESTINATION /usr/bin/)
-install(FILES ${ASSETS}/onions-hs.1.gz   DESTINATION /usr/share/man/man1)
+install(TARGETS onions-hs                DESTINATION bin/)
+install(FILES ${ASSETS}/onions-hs.1.gz   DESTINATION share/man/man1)

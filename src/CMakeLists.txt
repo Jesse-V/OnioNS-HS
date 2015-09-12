@@ -19,13 +19,13 @@ add_executable(onions-hs
 )
 
 FIND_LIBRARY(onions-common NAMES "onions-common" REQUIRED
-  PATHS /usr/lib/onions-common NO_DEFAULT_PATH)
+  PATHS ${CMAKE_INSTALL_PREFIX}/lib/onions-common NO_DEFAULT_PATH)
 FIND_LIBRARY(onions-cyoencode NAMES "onions-cyoencode" REQUIRED
-  PATHS /usr/lib/onions-common NO_DEFAULT_PATH)
+  PATHS ${CMAKE_INSTALL_PREFIX}/lib/onions-common NO_DEFAULT_PATH)
 FIND_LIBRARY(onions-jsoncpp NAMES "onions-jsoncpp" REQUIRED
-  PATHS /usr/lib/onions-common NO_DEFAULT_PATH)
+  PATHS ${CMAKE_INSTALL_PREFIX}/lib/onions-common NO_DEFAULT_PATH)
 FIND_LIBRARY(onions-scrypt NAMES "libscrypt.so.0" REQUIRED
-  PATHS /usr/lib/onions-common NO_DEFAULT_PATH)
+  PATHS ${CMAKE_INSTALL_PREFIX}/lib/onions-common NO_DEFAULT_PATH)
 
 if (${onions-common} MATCHES ".*-NOTFOUND")
   message(FATAL_ERROR "OnioNS-common could not be found! Please install it.")
@@ -50,6 +50,10 @@ if (${onions-scrypt} MATCHES ".*-NOTFOUND")
 else()
   message(STATUS "Found OnioNS-common's libscrypt component")
 endif()
+
+#http://www.cmake.org/Wiki/CMake_RPATH_handling
+SET(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib/onions-common)
+message(STATUS ${CMAKE_INSTALL_PREFIX}/lib/onions-common/)
 
 target_link_libraries(onions-hs ${onions-common} ${onions-cyoencode}
   ${onions-jsoncpp} ${onions-scrypt} popt botan-1.10 ${Boost_SYSTEM_LIBRARY} ${Boost_LIBRARIES})

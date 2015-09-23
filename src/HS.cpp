@@ -1,7 +1,7 @@
 
 #include "HS.hpp"
 #include <onions-common/containers/records/CreateR.hpp>
-#include <onions-common/tcp/TorStream.hpp>
+#include <onions-common/tcp/AuthenticatedStream.hpp>
 #include <onions-common/Config.hpp>
 #include <onions-common/Log.hpp>
 #include <onions-common/Utils.hpp>
@@ -117,13 +117,19 @@ RecordPtr HS::promptForRecord()
 
 bool HS::sendRecord(const RecordPtr& r, short socksPort)
 {
-  auto nodeConf = Config::getQuorumNode()[0];
+  const auto Q_NODE = Config::getQuorumNode()[0];
+  const auto Q_ONION = Q_NODE["addr"].asString();
+  const auto Q_KEY = Q_NODE["key"].asString();
   const auto SERVER_PORT = Const::SERVER_PORT;
-  TorStream quorumNode("127.0.0.1", socksPort, nodeConf["addr"].asString(),
-                       SERVER_PORT);
+
+  ED_KEY qPubKey;
+  std::copy(Q_KEY.begin(), Q_KEY.end(), qPubKey.data());
+
+  AuthenticatedStream qStream("127.0.0.1", socksPort, Q_ONION, SERVER_PORT,
+                              qPubKey);
 
   std::cout << "Uploading Record..." << std::endl;
-  auto received = quorumNode.sendReceive("upload", r->asJSON());
+  auto received = qStream.sendReceive("putRecord", r->asJSON());
   if (received["type"].asString() == "error")
   {
     Log::get().error(received["value"].asString());

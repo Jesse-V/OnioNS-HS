@@ -120,13 +120,9 @@ bool HS::sendRecord(const RecordPtr& r, short socksPort)
   const auto Q_NODE = Config::getQuorumNode()[0];
   const auto Q_ONION = Q_NODE["addr"].asString();
   const auto Q_KEY = Q_NODE["key"].asString();
-  const auto SERVER_PORT = Const::SERVER_PORT;
+  const auto S_PORT = Const::SERVER_PORT;
 
-  ED_KEY qPubKey;
-  std::copy(Q_KEY.begin(), Q_KEY.end(), qPubKey.data());
-
-  AuthenticatedStream qStream("127.0.0.1", socksPort, Q_ONION, SERVER_PORT,
-                              qPubKey);
+  AuthenticatedStream qStream("127.0.0.1", socksPort, Q_ONION, S_PORT, Q_KEY);
 
   std::cout << "Uploading Record..." << std::endl;
   auto received = qStream.sendReceive("putRecord", r->asJSON());

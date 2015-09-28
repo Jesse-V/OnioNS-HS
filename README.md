@@ -31,11 +31,11 @@ I provide builds for Debian Wheezy in the [Releases section](https://github.com/
 
 * **Install from source**
 
-> 1. Install tor-onions-dev by following [these instructions](https://github.com/Jesse-V/OnioNS-common#installation).
+> 1. Install tor-onions-common by following [these instructions](https://github.com/Jesse-V/OnioNS-common#installation).
 > 2. Download and extract the latest release from the [Releases page](https://github.com/Jesse-V/OnioNS-HS/releases).
 > 3. *(mkdir build; cd build; cmake ../src; make; sudo make install)*
 
-The rebuild.sh script is available if you are actively developing OnioNS. You will need to install *clang-format-3.6* and *cppcheck* as the script also styles the code and performs a static analysis check.
+If you are actively developing OnioNS, I have actively prepared two scripts, devBuild.sh and checkBuild.sh. Please see them for more information.
 
 You can cleanup your build with **rm -rf build**
 
@@ -48,6 +48,10 @@ The hidden service edition of the OnioNS software is primarily a command-line ut
 > 3. Follow the on-screen instructions. You may claim a single .tor domain (which will point to your hidden service) and up to 24 subdomains, which must point to a .tor or .onion address of your choosing.
 
 A manpage is available for your convenience.
+
+#### Minimum System Requirements
+
+1 CPU core, 1 MB of free disk space, and N * 128 MB of available RAM where N is the number of available CPU cores. Please add "-w 1" if you have more than one CPU core but less than N * 128 MB available RAM. This can sometimes be the case if your HS is hosted on a minuscule VM.
 
 ### Bug Reporting
 

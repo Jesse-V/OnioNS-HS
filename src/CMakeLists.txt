@@ -13,6 +13,11 @@ endif()
 
 include_directories(${CMAKE_INSTALL_PREFIX}/include/onions-common /usr/include/botan-1.10)
 
+#http://www.cmake.org/Wiki/CMake_RPATH_handling
+SET(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib/onions-common)
+message(STATUS ${CMAKE_INSTALL_PREFIX}/lib/onions-common/)
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 add_executable(onions-hs
   main.cpp
   HS.cpp
@@ -51,14 +56,10 @@ else()
   message(STATUS "Found OnioNS-common's libscrypt component")
 endif()
 
-#http://www.cmake.org/Wiki/CMake_RPATH_handling
-SET(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib/onions-common)
-message(STATUS ${CMAKE_INSTALL_PREFIX}/lib/onions-common/)
-
 target_link_libraries(onions-hs ${onions-common} ${onions-cyoencode}
   ${onions-jsoncpp} ${onions-scrypt} popt botan-1.10 ${Boost_SYSTEM_LIBRARY} ${Boost_LIBRARIES})
 
 #installation of files
 set(ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/assets")
-install(TARGETS onions-hs                DESTINATION bin/)
+install(TARGETS onions-hs RUNTIME        DESTINATION bin/)
 install(FILES ${ASSETS}/onions-hs.1.gz   DESTINATION share/man/man1)

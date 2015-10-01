@@ -57,7 +57,7 @@ else()
 endif()
 
 target_link_libraries(onions-hs ${onions-common} ${onions-cyoencode}
-  ${onions-jsoncpp} ${onions-scrypt} popt botan-1.10 ${Boost_SYSTEM_LIBRARY} ${Boost_LIBRARIES})
+  ${onions-jsoncpp} ${onions-scrypt} popt pthread botan-1.10 ${Boost_SYSTEM_LIBRARY} ${Boost_LIBRARIES})
 
 #installation of files
 set(ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/assets")

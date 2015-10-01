@@ -1,4 +1,4 @@
-tor-onions-hs (0.6.2.1~trusty) trusty; urgency=medium
+tor-onions-hs (0.6.2.2~trusty) trusty; urgency=medium
 
   * Fix RPATH assignment to allow the Linux loader to find OnioNS-common.
 

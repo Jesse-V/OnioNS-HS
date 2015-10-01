@@ -1,8 +1,9 @@
-tor-onions-hs (0.6.1.5~trusty) trusty; urgency=medium
+tor-onions-hs (0.6.1.6~trusty) trusty; urgency=medium
 
   * Use authenticated connections to Quorum node.
   * Add Clang's scan-build static analysis tool to build scripts.
   * Install to /usr/local/ when compiled from source.
+  * Re-fixed missing linkage against pthread, necessary for armhf builds.
 
  -- Jesse Victors <kernelcorn@riseup.net>  Mon, 28 Sep 2015 13:00:00 -0800
 

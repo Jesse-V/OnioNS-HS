@@ -2,64 +2,72 @@ cmake_minimum_required(VERSION 2.8)
 
 project(onions-hs)
 
-find_package(Boost COMPONENTS system REQUIRED)
+# define compiler options for Clang and GCC/G++
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fstack-protector -D_FORTIFY_SOURCE=1")
+SET(CLANG_DEBUG "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG} -O2 -Wno-c++98-compat-pedantic -pedantic -Weverything -Wno-exit-time-destructors -Wno-weak-vtables -Wno-padded -Wno-deprecated -Wno-documentation -Wno-documentation-unknown-command -Wno-reserved-id-macro -Wno-missing-noreturn -Wno-sign-conversion -Wno-shadow")
+SET(GCC_DEBUG "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG} -O2 -Wall -Wextra -pedantic -Wdouble-promotion -Wfloat-equal -Wunsafe-loop-optimizations")
 
-#compiler options for Clang and GCC/G++
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  set(CMAKE_CXX_FLAGS "-g -O3 -std=c++11 -Wno-c++98-compat-pedantic -pedantic -Weverything -Wno-documentation -Wno-documentation-unknown-command -Wno-reserved-id-macro -Wno-missing-noreturn")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CLANG_DEBUG}")
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  set(CMAKE_CXX_FLAGS "-g -O3 -std=c++11 -Wall -Wextra -pedantic -Wdouble-promotion -Wfloat-equal -Wunsafe-loop-optimizations")
+  set(CMAKE_CXX_FLAGS_DEBUG "${GCC_DEBUG}")
 endif()
 
 include_directories(${CMAKE_INSTALL_PREFIX}/include/onions-common /usr/include/botan-1.10)
-
-#http://www.cmake.org/Wiki/CMake_RPATH_handling
-SET(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib/onions-common)
-message(STATUS ${CMAKE_INSTALL_PREFIX}/lib/onions-common/)
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 add_executable(onions-hs
   main.cpp
   HS.cpp
 )
 
+FIND_LIBRARY(botan NAMES "botan-1.10" REQUIRED)
+FIND_LIBRARY(argtable2 NAMES "argtable2" REQUIRED)
+FIND_LIBRARY(jsoncpp NAMES "jsoncpp" REQUIRED)
+
+# find main onions-common library components
 FIND_LIBRARY(onions-common NAMES "onions-common" REQUIRED
   PATHS ${CMAKE_INSTALL_PREFIX}/lib/onions-common NO_DEFAULT_PATH)
-FIND_LIBRARY(onions-cyoencode NAMES "onions-cyoencode" REQUIRED
+
+# find json-rpc-cpp components
+FIND_LIBRARY(onions-jsonrpccpp-common NAMES "jsonrpccpp-common" REQUIRED
   PATHS ${CMAKE_INSTALL_PREFIX}/lib/onions-common NO_DEFAULT_PATH)
-FIND_LIBRARY(onions-jsoncpp NAMES "onions-jsoncpp" REQUIRED
+FIND_LIBRARY(onions-jsonrpccpp-client NAMES "jsonrpccpp-client" REQUIRED
   PATHS ${CMAKE_INSTALL_PREFIX}/lib/onions-common NO_DEFAULT_PATH)
-FIND_LIBRARY(onions-scrypt NAMES "libscrypt.so.0" REQUIRED
-  PATHS ${CMAKE_INSTALL_PREFIX}/lib/onions-common NO_DEFAULT_PATH)
+
+if (${botan} MATCHES ".*-NOTFOUND")
+  message(FATAL_ERROR "Botan could not be found! Please install libbotan1.10-dev")
+else()
+  message(STATUS "Found Botan library at ${botan}")
+endif()
+
+if (${argtable2} MATCHES ".*-NOTFOUND")
+  message(FATAL_ERROR "Argtable2 could not be found! Please install libargtable2-dev")
+else()
+  message(STATUS "Found Argtable2 library at ${argtable2}")
+endif()
+
+if (${jsoncpp} MATCHES ".*-NOTFOUND")
+  message(FATAL_ERROR "Could not find jsoncpp. Please install libjsoncpp-dev")
+else()
+  message(STATUS "Found jsoncpp at ${jsoncpp}")
+endif()
 
 if (${onions-common} MATCHES ".*-NOTFOUND")
-  message(FATAL_ERROR "OnioNS-common could not be found! Please install it.")
+  message(FATAL_ERROR "OnioNS-common could not be found! Please install tor-onions-common")
 else()
-  message(STATUS "Found OnioNS-common library")
+  message(STATUS "Found OnioNS-common library at ${onions-common}")
 endif()
 
-if (${onions-cyoencode} MATCHES ".*-NOTFOUND")
-  message(FATAL_ERROR "OnioNS-common's CyoEncode component was not found!")
+if (${onions-jsonrpccpp-client} MATCHES ".*-NOTFOUND")
+  message(FATAL_ERROR "JSON-RPC-CPP component was not found! Please install tor-onions-common")
 else()
-  message(STATUS "Found OnioNS-common's CyoEncode component")
+  message(STATUS "Found JSON-RPC-CPP's Client at ${onions-jsonrpccpp-client}")
 endif()
 
-if (${onions-jsoncpp} MATCHES ".*-NOTFOUND")
-  message(FATAL_ERROR "OnioNS-common's jsoncpp component was not found!")
-else()
-  message(STATUS "Found OnioNS-common's JsonCpp component")
-endif()
-
-if (${onions-scrypt} MATCHES ".*-NOTFOUND")
-  message(FATAL_ERROR "OnioNS-common's scrypt component was not found!")
-else()
-  message(STATUS "Found OnioNS-common's libscrypt component")
-endif()
-
-target_link_libraries(onions-hs ${onions-common} ${onions-cyoencode}
-  ${onions-jsoncpp} ${onions-scrypt} popt botan-1.10 ${Boost_SYSTEM_LIBRARY} ${Boost_LIBRARIES})
+target_link_libraries(onions-hs ${onions-common} ${jsoncpp}
+  ${onions-jsonrpccpp-common} ${onions-jsonrpccpp-client} ${argtable2} ${botan} pthread)
 
 #installation of files
-set(ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/assets")
-install(TARGETS onions-hs RUNTIME        DESTINATION bin/)
-install(FILES ${ASSETS}/onions-hs.1.gz   DESTINATION share/man/man1)
+set(DEB_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/assets")
+install(TARGETS onions-hs                   DESTINATION bin)
+install(FILES ${DEB_FOLDER}/onions-hs.1.gz  DESTINATION share/man/man1)

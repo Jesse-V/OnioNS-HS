@@ -1,7 +1,5 @@
 
 #include "HS.hpp"
-#include <onions-common/containers/records/CreateR.hpp>
-#include <onions-common/tcp/AuthenticatedStream.hpp>
 #include <onions-common/Config.hpp>
 #include <onions-common/Log.hpp>
 #include <onions-common/Utils.hpp>
@@ -19,15 +17,15 @@ RecordPtr HS::createRecord(uint8_t workers)
   std::string tmp;
   std::getline(std::cin, tmp);
 
-  r->makeValid(workers);
+  // r->makeValid(workers);
 
   std::cout << std::endl;
   std::cout << *r << std::endl;
 
   std::cout << std::endl;
   auto json = r->asJSON();
-  std::cout << "Final Record is " << json.length()
-            << " bytes, ready for transmission: \n\n" << json << std::endl;
+  std::cout << "Final Record is ready for transmission: \n\n"
+            << json << std::endl;
 
   return r;
 }
@@ -58,23 +56,25 @@ RecordPtr HS::promptForRecord()
 
   std::string pgp;
   std::cout << "\nYou may optionally supply your PGP fingerprint, \n"
-               "which must be a power of two in length." << std::endl;
-  while (!Utils::isPowerOfTwo(pgp.length()))
+               "which must be a power of two in length."
+            << std::endl;
+  // while (!Utils::isPowerOfTwo(pgp.length()))
   {
     std::cout << "Your PGP fingerprint: ";
     std::getline(std::cin, pgp);  //"AD97364FC20BEC80"
 
     pgp = Utils::trimString(pgp);
-    if (pgp.empty())
-      break;
+    // if (pgp.empty())
+    //  break;
   }
 
   std::cout << "\nYou may provide up to 24 subdomain-destination pairs.\n"
-               "These must end with \"." << name
-            << "\". Leave the "
-               "subdomain blank when finished." << std::endl;
+               "These must end with \"."
+            << name << "\". Leave the "
+                       "subdomain blank when finished."
+            << std::endl;
 
-  NameList list;
+  StringMap list;
   for (int n = 0; n < 24; n++)
   {
     std::string src = name, dest;
@@ -107,31 +107,33 @@ RecordPtr HS::promptForRecord()
   }
 
   std::cout << std::endl;
-  auto r = std::make_shared<CreateR>(Utils::loadKey(keyPath_), name, pgp);
-  r->setSubdomains(list);
+  // auto r = std::make_shared<CreateR>(Utils::loadKey(keyPath_), name, pgp);
+  // r->setSubdomains(list);
 
-  return r;
+  // return r;
+  return nullptr;
 }
 
 
 
 bool HS::sendRecord(const RecordPtr& r, short socksPort)
 {
+  /*
   const auto Q_NODE = Config::getQuorumNode()[0];
   const auto Q_ONION = Q_NODE["addr"].asString();
   const auto Q_KEY = Q_NODE["key"].asString();
   const auto S_PORT = Const::SERVER_PORT;
 
-  AuthenticatedStream qStream("127.0.0.1", socksPort, Q_ONION, S_PORT, Q_KEY);
+    AuthenticatedStream qStream("127.0.0.1", socksPort, Q_ONION, S_PORT, Q_KEY);
 
-  std::cout << "Uploading Record..." << std::endl;
-  auto received = qStream.sendReceive("putRecord", r->asJSON());
-  if (received["type"].asString() == "error")
-  {
-    Log::get().error(received["value"].asString());
-    return false;
-  }
-
+    std::cout << "Uploading Record..." << std::endl;
+    auto received = qStream.sendReceive("putRecord", r->asJSON());
+    if (received["type"].asString() == "error")
+    {
+      Log::get().error(received["value"].asString());
+      return false;
+    }
+  */
   std::cout << "Record upload complete; your claim has been accepted.\n";
 
   return true;

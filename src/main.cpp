@@ -1,9 +1,16 @@
 
-#include "HS.hpp"
+#include "RecordManager.hpp"
 #include <onions-common/Log.hpp>
 #include <onions-common/Utils.hpp>
 #include <botan/botan.h>
 #include <fstream>
+
+int main(int argc, char** argv)
+{
+  RecordManager::get().mainMenu();
+}
+
+/*
 #include <iostream>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -20,7 +27,7 @@ int main(int argc, char** argv)
   bool license = false;
   short port = 9050;
   uint8_t workers = countAvailableCPUs();
-  /*
+
     struct poptOption po[] = {
         {
             "hsKey", 'k', POPT_ARG_STRING, &keyPath, 11001,
@@ -61,7 +68,7 @@ int main(int argc, char** argv)
     }
 
     manageRecord(workers, port);
-  */
+
   return EXIT_SUCCESS;
 }
 
@@ -112,3 +119,4 @@ uint8_t countAvailableCPUs()
 
   return cpus;
 }
+  */

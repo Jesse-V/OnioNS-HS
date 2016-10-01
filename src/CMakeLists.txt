@@ -17,7 +17,8 @@ include_directories(${CMAKE_INSTALL_PREFIX}/include/onions-common /usr/include/b
 
 add_executable(onions-hs
   main.cpp
-  HS.cpp
+  RecordManager.cpp
+  Terminal.cpp
 )
 
 FIND_LIBRARY(botan NAMES "botan-1.10" REQUIRED)

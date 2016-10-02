@@ -11,31 +11,15 @@
 #include <sstream>
 
 
-/*
-  edDSA public key
-  edDSA signature - edDSA key, name, destinations, data, nonce
-  name
-  nonce
-  destinations
-    RSA-1024 key
-    RSA-1024 signature - edDSA public key, name, RSA-1024 key
-*/
-
-/*
-  load word list, add numbers until 65536. Then take every two bytes.
-  Cast four bytes to uint32_t and increment until it works
-*/
-
-
 const size_t WORD_32 = 2 << 16;
 const int LINE_LENGTH = 80;
 
 const Terminal::Style bold(Terminal::BOLD);
 const Terminal::Style no_bold(Terminal::NO_BOLD);
 const Terminal::Style cyan(Terminal::CYAN, Terminal::LIGHT);
-//const Terminal::Style red(Terminal::RED, Terminal::LIGHT);
-//const Terminal::Style green(Terminal::GREEN, Terminal::LIGHT);
-//const Terminal::Style yellow(Terminal::YELLOW, Terminal::LIGHT);
+const Terminal::Style red(Terminal::RED, Terminal::LIGHT);
+// const Terminal::Style green(Terminal::GREEN, Terminal::LIGHT);
+// const Terminal::Style yellow(Terminal::YELLOW, Terminal::LIGHT);
 const Terminal::Style blue(Terminal::BLUE, Terminal::LIGHT);
 const Terminal::Style reset(Terminal::DEFAULT);
 
@@ -61,17 +45,32 @@ void RecordManager::mainMenu() const
       case 3:
         printHelp();
         break;
+
+      case 4:
+        exit(EXIT_SUCCESS);
     }
   }
 }
 
 
 
+RecordPtr generateRecord()
+{
+  std::string type = "Create";
+  std::string name = "example.tor";
+  std::string pgp = "1234";
+  StringMap subdomains;
+  uint32_t rng = 0, nonce = 0;
+  return std::make_shared<Record>(type, name, pgp, subdomains, rng, nonce);
+}
+
+
+
 void RecordManager::registerName() const
 {
-  EdDSA_KEY sKey = generateSecretKey();
+  EdDSA_KEY edSecKey = generateSecretKey();
   auto wordList = getWordList();
-  auto list = toWords(wordList, sKey);
+  auto list = toWords(wordList, edSecKey);
 
   const int PRINT_SIZE = 4;
   for (int j = 0; j < PRINT_SIZE; j++)
@@ -81,6 +80,44 @@ void RecordManager::registerName() const
       std::cout << std::left << std::setw(19) << list[j * PRINT_SIZE + k];
     std::cout << std::endl << std::endl;
   }
+
+
+
+  RecordPtr record = generateRecord();
+  std::cout << *record << std::endl;
+  // record is missing edKey, serviceKey, serviceSignature, edSig
+
+  /*
+  std::string resolve(const std::string&) const;
+    Botan::SecureVector<uint8_t> hash() const;
+    uint32_t computePOW(const std::vector<uint8_t>&) const;
+    bool computeValidity() const;
+    std::string computeOnion() const;
+    std::vector<uint8_t> asBytes(bool forSigning = false) const;
+    Json::Value asJSON() const;
+    friend std::ostream& operator<<(std::ostream&, const Record&);
+    */
+
+
+
+  /*
+    Botan::AutoSeeded_RNG rng;
+    Botan::PK_Signer signer(*privateKey_, "EMSA4(SHA-512)");
+    auto bytes = r.getServiceSigningScope();
+    auto sig = signer.sign_message(bytes, jsonStr.size(), rng);
+    std::copy(sig.begin(), sig.end(), signature_.begin());
+  */
+
+  // ed25519_sign(message, message_len, sk, pk, signature);
+
+  /*
+  std::string bytes = asBytes(); // last 4 bytes is the nonce
+  bytes.data()[size - 4]++;
+  setSignature(sign(privateKey, bytes.data()))
+  auto val = computePOW();
+  if (val < best)
+    bestNonce = nonce;
+*/
 }
 
 
@@ -118,25 +155,23 @@ void RecordManager::printHelp() const
       "way, everyone can verify that the name belongs to you."));
 
   text.push_back(std::string(
-      "In effect, you can keep the master key under your control. So long as "
-      "you keep it safe, you have complete, independent, and offline control "
-      "over your name record. Once you have registered a name on your own, you "
-      "will be prompted to distribute this record to specific nodes inside the "
-      "Tor network. If accepted by the network, users will be able to type the "
+      "In effect, you use the master key to have complete control over your "
+      "name record. Once you have registered a name on your own, you will be "
+      "prompted to distribute this record to specific nodes inside the Tor "
+      "network. If accepted by the network, users will be able to type the "
       "meaningful name into the Tor Browser and load your onion service. The "
       "digital signatures ensure authenticity and prevent anyone from "
       "manipulating your record without your permission."));
 
   text.push_back(std::string(
-      "Of course, as with passwords, PGP keys, and other confidential "
-      "information, it is your responsibility to keep secret keys safe. This "
-      "portal will translate the master secret key into a series of words, "
-      "which will make it easier for you to write down and retrieve. However, "
-      "we cannot recover lost keys, restore control of your record if the "
+      "It is very important that you keep the master key safe. This portal "
+      "will translate the master key into a series of words, which will make "
+      "it easier for you to write down and retrieve. You can keep these words "
+      "offline and air-gapped. This software will never write the master key "
+      "to disk and will securely erase it from RAM when the program exits. "
+      "We cannot recover lost keys, restore control of your record if the "
       "master key has been compromised, or hand your key over to any third "
-      "party. There is no need to upload the master key to any online service, "
-      "but we encourage you to encrypt or otherwise obfuscate your key should "
-      "you choose to do so."));
+      "party."));
 
   text.push_back(std::string(
       "Online documentation is coming soon. We assume that this software will "
@@ -156,10 +191,11 @@ int RecordManager::showMenu() const
   std::cout << "1) Register a new name \n";
   std::cout << "2) Modify an existing name record \n";
   std::cout << "3) Get help and learn more \n";
+  std::cout << "4) Close this application \n";
   std::cout << blue;
 
   return readInt("Your selection:", "That is not a valid selection.",
-                 [](int i) { return i >= 0 && i <= 3; });
+                 [](int i) { return i >= 0 && i <= 4; });
   ;
 }
 
@@ -170,12 +206,12 @@ std::vector<std::string> RecordManager::toWords(
     const EdDSA_KEY& sKey) const
 {
   std::vector<std::string> results;
-  if (sKey->size() != EdDSA_KEY_LEN)
+  if (sKey.size() != Const::EdDSA_KEY_LEN)
     return results;
 
-  for (int j = 0; j < EdDSA_KEY_LEN; j += 2)
+  for (int j = 0; j < Const::EdDSA_KEY_LEN; j += 2)
   {
-    uint16_t value = *reinterpret_cast<uint16_t*>(sKey->data() + j);
+    uint16_t value = *reinterpret_cast<const uint16_t*>(sKey.data() + j);
     results.push_back(wordList[value]);
   }
 
@@ -187,8 +223,8 @@ std::vector<std::string> RecordManager::toWords(
 EdDSA_KEY RecordManager::generateSecretKey() const
 {
   static Botan::AutoSeeded_RNG rng;
-  EdDSA_KEY key = std::make_shared<std::array<uint8_t, EdDSA_KEY_LEN>>();
-  rng.randomize(key->data(), EdDSA_KEY_LEN);
+  EdDSA_KEY key;
+  rng.randomize(key.data(), Const::EdDSA_KEY_LEN);
   return key;
 }
 

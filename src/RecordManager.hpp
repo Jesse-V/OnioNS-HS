@@ -5,9 +5,6 @@
 #include <onions-common/records/Record.hpp>
 #include <botan/rsa.h>
 
-const size_t EdDSA_KEY_LEN = 32;
-typedef std::shared_ptr<std::array<uint8_t, EdDSA_KEY_LEN>> EdDSA_KEY;
-
 class RecordManager
 {
  public:
@@ -32,7 +29,7 @@ class RecordManager
   //  static std::string keyPath_;
 
  private:
-  RecordManager(){};
+  RecordManager() {}
   RecordManager(RecordManager const&) = delete;
   void operator=(RecordManager const&) = delete;
 

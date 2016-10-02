@@ -24,7 +24,7 @@ before_script:
   - cd ../../
 
 script:
-  - package=tor-onions-hs_$(grep -m 1 -o '(.*)' debian/changelog | cut -c 2- | rev | cut -c 2- | rev)_%{commit}
+  - package=tor-onions-hs_$(grep -m 1 -o '(.*)' debian/changelog | cut -c 2- | rev | cut -c 2- | rev)
   - tar -czf $package.orig.tar.gz src/
   - cp -rl debian src/debian
   - cd src/

@@ -1,15 +1,15 @@
-tor-onions-hs (0.7.1.1~trusty) trusty; urgency=medium
+tor-onions-hs (0.7.1.2~trusty) trusty; urgency=medium
 
-* UX: Introduce main menu.
-* UX: Display master EdDSA key as a series of 16 words.
-* UX: Used colorized output to terminal.
-* Security: Use master EdDSA key to manage record.
-* Security: Stop loading/saving keys to disk.
-* Include american-english-small wordlist from wamerican-small/testing.
-* Sign Record using EdDSA and RSA keys instead of Record doing that.
-* Initial setup for proof-of-work.
+  * UX: Introduce main menu.
+  * UX: Display master EdDSA key as a series of 16 words.
+  * UX: Used colorized output to terminal.
+  * Security: Use master EdDSA key to manage record.
+  * Security: Stop loading/saving keys to disk.
+  * Include american-english-small wordlist from wamerican-small/testing.
+  * Sign Record using EdDSA and RSA keys instead of Record doing that.
+  * Initial setup for proof-of-work.
 
--- Jesse Victors <kernelcorn@torproject.org>  Sun, 02 Oct 2016 12:00:00 -0500
+ -- Jesse Victors <kernelcorn@torproject.org>  Sun, 02 Oct 2016 12:00:00 -0500
 
 tor-onions-hs (0.6.2.1~trusty) trusty; urgency=medium
 

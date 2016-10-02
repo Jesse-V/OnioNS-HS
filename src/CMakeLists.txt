@@ -14,6 +14,7 @@ elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 endif()
 
 include_directories(${CMAKE_INSTALL_PREFIX}/include/onions-common /usr/include/botan-1.10)
+add_definitions(-DINSTALL_PREFIX=std::string\("${CMAKE_INSTALL_PREFIX}"\))
 
 add_executable(onions-hs
   main.cpp
@@ -69,6 +70,7 @@ target_link_libraries(onions-hs ${onions-common} ${jsoncpp}
   ${onions-jsonrpccpp-common} ${onions-jsonrpccpp-client} ${argtable2} ${botan} pthread)
 
 #installation of files
-set(DEB_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/assets")
-install(TARGETS onions-hs                   DESTINATION bin)
-install(FILES ${DEB_FOLDER}/onions-hs.1.gz  DESTINATION share/man/man1)
+set(ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/assets")
+install(TARGETS onions-hs                       DESTINATION bin)
+install(FILES ${ASSETS}/onions-hs.1.gz          DESTINATION share/man/man1)
+install(FILES ${ASSETS}/american-english-small  DESTINATION share/onions-hs)

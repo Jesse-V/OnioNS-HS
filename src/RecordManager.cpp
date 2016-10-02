@@ -24,6 +24,11 @@ const Terminal::Style blue(Terminal::BLUE, Terminal::LIGHT);
 const Terminal::Style reset(Terminal::DEFAULT);
 
 
+#ifndef INSTALL_PREFIX
+#error CMake has not defined INSTALL_PREFIX!
+#endif
+
+
 void RecordManager::mainMenu() const
 {
   std::cout << std::endl << bold << cyan;
@@ -233,7 +238,7 @@ EdDSA_KEY RecordManager::generateSecretKey() const
 std::vector<std::string> RecordManager::getWordList() const
 {
   std::ifstream file;
-  std::string path = "src/assets/american-english-small";
+  std::string path = INSTALL_PREFIX + "/share/onions-hs/american-english-small";
   file.open(path, std::fstream::in);
 
   std::vector<std::string> results;

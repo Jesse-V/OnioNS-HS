@@ -10,15 +10,15 @@
 # If your distribution has clang-analyzer-3.8, you may need to install that as well.
 
 # in some distributions the path is /usr/share/clang/scan-build-3.8/c++-analyzer
-export CXX=/usr/share/clang/scan-build-3.8/libexec/c++-analyzer
-export CC=/usr/share/clang/scan-build-3.8/libexec/ccc-analyzer
+export CCC_CXX=clang++-3.8
+export CCC_CC=clang-3.8
 
 # delete any previous build as linking fails if there's a mix of compilers
-rm -rf build src/libs/libjson-rpc-cpp/build
+rm -rf build
 
 mkdir -p build/
 cd build
-scan-build-3.8 cmake ../src -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC
+scan-build-3.8 cmake ../src -DCMAKE_CXX_COMPILER=/usr/share/clang/scan-build-3.8/libexec/c++-analyzer -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-3.8/libexec/ccc-analyzer
 # -DCMAKE_BUILD_TYPE=Debug
 
 # 2>&1 | grep -F -v "src/libs"
@@ -36,7 +36,7 @@ if (scan-build-3.8 -maxloop 16 -enable-checker core -enable-checker cplusplus -d
     echo "Additional static analysis...        ----------------------------------------------"
     cd ..
 
-    find src -type f -follow -print | grep -F -v "src/libs" | grep -E "\.h|\.c" | cppcheck -i "src/spec/rpc_spec.json" --enable=all --platform=unix64 --inconclusive --file-list=-
+    find src -type f -follow -print | grep -E "\.h|\.c" | cppcheck --enable=all --platform=unix64 --inconclusive --file-list=-
 
     echo "Success: compilation and scan-build check successful!"
   fi

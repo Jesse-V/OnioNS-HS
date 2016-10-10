@@ -1,12 +1,13 @@
 
 #include "RecordManager.hpp"
 #include "Terminal.hpp"
-//#include <onions-common/Config.hpp>
-//#include <onions-common/Utils.hpp>
-#include <botan/auto_rng.h>
+#include <onions-common/Utils.hpp>
+#include <botan/rsa.h>
+#include <botan/pubkey.h>
 #include <functional>
 #include <iostream>
 #include <iomanip>
+#include <chrono>
 #include <fstream>
 #include <sstream>
 
@@ -28,11 +29,12 @@ const Terminal::Style reset(Terminal::DEFAULT);
 #error CMake has not defined INSTALL_PREFIX!
 #endif
 
+// ************************** MENU OPTIONS ************************** //
 
 void RecordManager::mainMenu() const
 {
-  std::cout << std::endl << bold << cyan;
-  std::cout << "Welcome to the OnioNS name management portal!" << std::endl;
+  std::cout << '\n' << bold << cyan;
+  std::cout << "Welcome to the OnioNS name management portal! \n";
   std::cout << reset << no_bold << blue;
 
   while (true)
@@ -59,18 +61,6 @@ void RecordManager::mainMenu() const
 
 
 
-RecordPtr generateRecord()
-{
-  std::string type = "Create";
-  std::string name = "example.tor";
-  std::string pgp = "1234";
-  StringMap subdomains;
-  uint32_t rng = 0, nonce = 0;
-  return std::make_shared<Record>(type, name, pgp, subdomains, rng, nonce);
-}
-
-
-
 void RecordManager::registerName() const
 {
   EdDSA_KEY edSecKey = generateSecretKey();
@@ -83,53 +73,27 @@ void RecordManager::registerName() const
     std::cout << "  ";
     for (int k = 0; k < PRINT_SIZE; k++)
       std::cout << std::left << std::setw(19) << list[j * PRINT_SIZE + k];
-    std::cout << std::endl << std::endl;
+    std::cout << "\n\n";
   }
 
-
-
   RecordPtr record = generateRecord();
-  std::cout << *record << std::endl;
-  // record is missing edKey, serviceKey, serviceSignature, edSig
-
-  /*
-  std::string resolve(const std::string&) const;
-    Botan::SecureVector<uint8_t> hash() const;
-    uint32_t computePOW(const std::vector<uint8_t>&) const;
-    bool computeValidity() const;
-    std::string computeOnion() const;
-    std::vector<uint8_t> asBytes(bool forSigning = false) const;
-    Json::Value asJSON() const;
-    friend std::ostream& operator<<(std::ostream&, const Record&);
-    */
-
-
-
-  /*
-    Botan::AutoSeeded_RNG rng;
-    Botan::PK_Signer signer(*privateKey_, "EMSA4(SHA-512)");
-    auto bytes = r.getServiceSigningScope();
-    auto sig = signer.sign_message(bytes, jsonStr.size(), rng);
-    std::copy(sig.begin(), sig.end(), signature_.begin());
-  */
-
-  // ed25519_sign(message, message_len, sk, pk, signature);
-
-  /*
-  std::string bytes = asBytes(); // last 4 bytes is the nonce
-  bytes.data()[size - 4]++;
-  setSignature(sign(privateKey, bytes.data()))
-  auto val = computePOW();
-  if (val < best)
-    bestNonce = nonce;
-*/
+  addOnionServiceKey(record);
+  makeValid(record, edSecKey, 1);
 }
 
 
 
 void RecordManager::modifyName() const
 {
-  std::cout << "This functionality has not yet been implemented." << std::endl;
+  std::vector<std::string> text;
+
+  text.push_back(std::string(
+      "This functionality has not yet been implemented. Fortunately, the "
+      "network is in Debug mode, so your records will not be copied into "
+      "production. For the time being, feel free to register as many names as "
+      "you like. There is no rate limiting in Debug mode."));
+
+  printParagraphs(text);
 }
 
 
@@ -178,6 +142,13 @@ void RecordManager::printHelp() const
       "master key has been compromised, or hand your key over to any third "
       "party."));
 
+  text.push_back(
+      std::string("We have built OnioNS because we believe that onion services "
+                  "have some very useful applications. It is our hope that "
+                  "this software will make them easier to access and for you "
+                  "to manage. We encourage you to use OnioNS on onion services "
+                  "that reflect positively on Tor and its community."));
+
   text.push_back(std::string(
       "Online documentation is coming soon. We assume that this software will "
       "be run offline or on a headless environment, so we will continue to "
@@ -190,7 +161,7 @@ void RecordManager::printHelp() const
 
 int RecordManager::showMenu() const
 {
-  std::cout << blue << std::endl;
+  std::cout << blue << '\n';
   std::cout << "Main menu. Select from one of the options below:\n";
   std::cout << reset;
   std::cout << "1) Register a new name \n";
@@ -201,7 +172,159 @@ int RecordManager::showMenu() const
 
   return readInt("Your selection:", "That is not a valid selection.",
                  [](int i) { return i >= 0 && i <= 4; });
-  ;
+}
+
+
+// ************************** RECORD SETUP ************************** //
+
+
+RecordPtr RecordManager::generateRecord() const
+{
+  std::string type = "ticket";
+  std::string name = "example.tor";
+  std::string pgp = "AD97364FC20BEC80";
+  StringMap subdomains;
+  subdomains.push_back(std::make_pair("ddg", "duckduckgo.tor"));
+
+  uint32_t rng = 1234567890, nonce = 0;
+  return std::make_shared<Record>(type, name, pgp, subdomains, rng, nonce);
+}
+
+
+
+void RecordManager::addOnionServiceKey(RecordPtr& record) const
+{
+  std::vector<std::string> text;
+  text.push_back(
+      "Please paste the private key of your onion service. By default, this "
+      "key is located at /var/lib/tor/hidden_service/private_key, although "
+      "this may be different if you customized the path. The key will begin "
+      "with \"-----BEGIN RSA PRIVATE KEY-----\". This will correspond to the "
+      "destination for your registered name. We will never write the private "
+      "key to disk. Please also note the value of the \"hostname\" file in the "
+      "same directory.");
+  printParagraphs(text);
+
+  std::shared_ptr<Botan::RSA_PrivateKey> rsaSecKey;
+  bool correctKey = true;
+  do
+  {
+    std::string keyStr = readMultiLineUntil(
+        "Paste your RSA onion service key: \n", [](const std::string& line) {
+          return line == "-----END RSA PRIVATE KEY-----";
+        });
+
+    rsaSecKey = Utils::decodeRSA(keyStr);
+    if (rsaSecKey->get_n().bits() != Const::RSA_KEY_LEN)
+    {
+      std::cerr << red << "\nThis is not a 1024-bit RSA key!\n" << reset;
+      continue;
+    }
+
+    record->setServicePublicKey(rsaSecKey);
+    std::cout << "\nThis key corresponds to " << record->computeOnion() << '\n';
+    std::cout << "Is this correct? [y] ";
+
+    std::string line;
+    char c;
+    getline(std::cin, line);
+    std::istringstream(line) >> c;
+    correctKey = (c == 'Y' || c == 'y');
+    std::cout << '\n';
+
+  } while (!correctKey);
+
+  // sign the Record fields
+  Botan::AutoSeeded_RNG rng;
+  Botan::PK_Signer signer(*rsaSecKey, "EMSA-PSS(SHA-384)");
+  auto scope = record->getServiceSigningScope();
+  auto sigVector = signer.sign_message(scope, scope.size(), rng);
+
+  // add the signature to the record
+  RSA_SIGNATURE signature;
+  std::copy(sigVector.begin(), sigVector.end(), signature.begin());
+  record->setServiceSignature(signature);
+}
+
+
+
+void RecordManager::makeValid(RecordPtr& record,
+                              const EdDSA_KEY& edSecKey,
+                              int workers) const
+{
+  // get public key
+  EdDSA_KEY edPubKey;
+  ed25519_publickey(edSecKey.data(), edPubKey.data());
+  record->setMasterPublicKey(edPubKey);
+
+  // please start at 0 and increment for the PoW, it will help me research how
+  // much work people are doing
+  uint32_t nonce = 0;
+  PoW_SCOPE powScope;
+  std::copy(edPubKey.begin(), edPubKey.end(), powScope.begin());
+  uint8_t* powNonce = powScope.data() + powScope.size() - sizeof(uint32_t);
+
+  std::vector<uint8_t> edScope = record->asBytes(false);
+  uint8_t* edNonce = edScope.data() + edScope.size() - sizeof(uint32_t);
+
+  using namespace std::chrono;
+  auto st = steady_clock::now();
+  uint32_t min = UINT32_MAX;
+  uint32_t max = 0;
+
+  std::cout << "Threshold: " << Const::POW_WORD_0 << '\n';
+
+  while (true)
+  {
+    nonce++;
+    memcpy(powNonce, &nonce, sizeof(uint32_t));
+    memcpy(edNonce, &nonce, sizeof(uint32_t));
+
+    ed25519_sign(edScope.data(), edScope.size(), edSecKey.data(),
+                 edPubKey.data(), powScope.data() + Const::EdDSA_KEY_LEN);
+    uint32_t val = Record::computePOW(powScope);
+
+    if (val < min)
+      min = val;
+    if (val > max)
+      max = val;
+
+    if (nonce % 100000 == 0)
+    {
+      auto diff = duration_cast<milliseconds>(steady_clock::now() - st).count();
+      float seconds = diff / 1000.f;
+
+      Terminal::clearLine();
+      std::cout << seconds << " seconds, " << (nonce / seconds)
+                << " i/second. Max = " << max << ", min = " << min;
+      std::cout.flush();
+    }
+  }
+  /*
+    EdDSA_SIG edSig;
+    ed25519_sign(edScope.data(), edScope.size(), edSecKey.data(),
+    edPubKey.data(),
+                 edSig.data());
+    record->setMasterSignature(edSig);
+    record->setNonce(nonce);
+
+    std::cout << *record << '\n';
+
+    std::cout << "Threshold: " << std::to_string(Const::POW_WORD_0) << '\n';
+    return record; */
+}
+
+
+// ************************** UTILITIES ************************** //
+
+
+EdDSA_KEY RecordManager::generateSecretKey() const
+{
+  static Botan::AutoSeeded_RNG rng;
+
+  EdDSA_KEY key;
+  rng.randomize(key.data(), Const::EdDSA_KEY_LEN);
+  return key;
 }
 
 
@@ -214,23 +337,13 @@ std::vector<std::string> RecordManager::toWords(
   if (sKey.size() != Const::EdDSA_KEY_LEN)
     return results;
 
-  for (int j = 0; j < Const::EdDSA_KEY_LEN; j += 2)
+  for (size_t j = 0; j < Const::EdDSA_KEY_LEN; j += 2)
   {
     uint16_t value = *reinterpret_cast<const uint16_t*>(sKey.data() + j);
     results.push_back(wordList[value]);
   }
 
   return results;
-}
-
-
-
-EdDSA_KEY RecordManager::generateSecretKey() const
-{
-  static Botan::AutoSeeded_RNG rng;
-  EdDSA_KEY key;
-  rng.randomize(key.data(), Const::EdDSA_KEY_LEN);
-  return key;
 }
 
 
@@ -281,14 +394,33 @@ int RecordManager::readInt(const std::string& prompt,
       if (check(choice))
         break;
       else
-        std::cout << red << failMessage << std::endl;
+        std::cout << red << failMessage << '\n';
     }
     else
-      std::cout << red << "Please provide a numeric value." << std::endl;
+      std::cout << red << "Please provide a numeric value.\n";
   }
-  std::cout << std::endl;
+  std::cout << '\n';
 
   return choice;
+}
+
+
+
+std::string RecordManager::readMultiLineUntil(
+    const std::string& prompt,
+    std::function<bool(const std::string&)> check) const
+{
+  std::cout << blue << prompt << " " << reset;
+  std::string result;
+  std::string line;
+
+  do
+  {
+    getline(std::cin, line);
+    result += line + "\n";
+  } while (!check(line));
+
+  return result;
 }
 
 
@@ -297,26 +429,19 @@ void RecordManager::printParagraphs(std::vector<std::string>& text) const
 {
   // print each paragraph, wrap a LINE_LENGTH chars
   std::for_each(text.begin(), text.end(), [](std::string& paragraph) {
-    int index = LINE_LENGTH;
+    size_t index = LINE_LENGTH;
     while (index < paragraph.size())
     {
       auto pos = paragraph.find_last_of(' ', index);
       paragraph.replace(pos, 1, 1, '\n');
       index = pos + LINE_LENGTH;
     }
-    std::cout << paragraph << std::endl << std::endl;
+    std::cout << paragraph << "\n\n";
   });
 }
 
 
 /*
-for (int j = 999999; j > 0; j--)
-{
-  printLine("Going " + std::to_string(j));
-  clearLine();
-  // std::this_thread::sleep_for(std::chrono::milliseconds(250));
-}
-
 RecordPtr HS::promptForRecord()
 {
 std::cout

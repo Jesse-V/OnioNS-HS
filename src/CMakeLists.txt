@@ -19,6 +19,7 @@ add_definitions(-DINSTALL_PREFIX=std::string\("${CMAKE_INSTALL_PREFIX}"\))
 add_executable(onions-hs
   main.cpp
   RecordManager.cpp
+  MenuSystem.cpp
   Terminal.cpp
 )
 

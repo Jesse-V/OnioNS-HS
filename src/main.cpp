@@ -1,13 +1,15 @@
 
+#include "MenuSystem.hpp"
 #include "RecordManager.hpp"
-#include <onions-common/Log.hpp>
-#include <onions-common/Utils.hpp>
-#include <botan/botan.h>
-#include <fstream>
+//#include <onions-common/Log.hpp>
+//#include <onions-common/Utils.hpp>
+//#include <botan/botan.h>
+//#include <fstream>
 
 int main(int argc, char** argv)
 {
-  RecordManager::get().mainMenu();
+  MenuSystem menu(std::make_shared<RecordManager>());
+  menu.mainMenu();
 }
 
 /*

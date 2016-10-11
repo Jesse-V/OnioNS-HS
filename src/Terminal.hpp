@@ -10,7 +10,7 @@ class Terminal
   static void printLine(const std::string&);
   static void clearLine();
 
-  enum BaseCode : int
+  enum Font : int
   {
     // styling
     BOLD = 1,
@@ -50,8 +50,8 @@ class Terminal
   {  // https://stackoverflow.com/questions/2616906
 
    public:
-    Style(BaseCode pCode) : _code(pCode) {}
-    Style(BaseCode pCode, Modifier mod) : _code(pCode + mod) {}
+    Style(Font pCode) : _code(pCode) {}
+    Style(Font pCode, Modifier mod) : _code(pCode + mod) {}
     friend std::ostream& operator<<(std::ostream& os, const Style& mod)
     {
       return os << "\033[" << mod._code << "m";

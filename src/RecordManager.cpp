@@ -9,6 +9,9 @@
 #include <chrono>
 #include <fstream>
 #include <sstream>
+#include <future>
+#include <cmath>
+#include <ctime>
 
 #ifndef INSTALL_PREFIX
 #error CMake has not defined INSTALL_PREFIX!
@@ -19,11 +22,29 @@ const Terminal::Style BLUE(Terminal::BLUE, Terminal::LIGHT);
 const Terminal::Style RESET_TERM(Terminal::DEFAULT);
 
 
-void RecordManager::registerName() const
+RecordManager::RecordManager()
+    : rsaSecKey_(nullptr), record_(nullptr), timeRemaining_(true)
 {
-  EdDSA_KEY edSecKey = generateSecretKey();
+  edSecKey_.fill(0);
+  edPubKey_.fill(0);
+}
+
+
+
+RecordManager::~RecordManager()
+{
+  edSecKey_.fill(0);
+  edPubKey_.fill(0);
+}
+
+
+
+void RecordManager::registerName()
+{
+  generateSecretKey();
+
   auto wordList = getWordList();
-  auto list = toWords(wordList, edSecKey);
+  auto list = edKey2Words(wordList);
 
   const int PRINT_SIZE = 4;
   for (int j = 0; j < PRINT_SIZE; j++)
@@ -34,14 +55,14 @@ void RecordManager::registerName() const
     std::cout << "\n\n";
   }
 
-  RecordPtr record = generateRecord();
-  addOnionServiceKey(record);
-  makeValid(record, edSecKey, 1);
+  generateRecord();
+  addOnionServiceKey();
+  startWorkers(2);
 }
 
 
 
-void RecordManager::modifyName() const
+void RecordManager::modifyName()
 {
   /*
   std::vector<std::string> text;
@@ -58,7 +79,7 @@ void RecordManager::modifyName() const
 
 
 
-RecordPtr RecordManager::generateRecord() const
+void RecordManager::generateRecord()
 {
   std::string type = "ticket";
   std::string name = "example.tor";
@@ -67,12 +88,13 @@ RecordPtr RecordManager::generateRecord() const
   subdomains.push_back(std::make_pair("ddg", "duckduckgo.tor"));
 
   uint32_t rng = 1234567890, nonce = 0;
-  return std::make_shared<Record>(type, name, pgp, subdomains, rng, nonce);
+  record_ = std::make_shared<Record>(type, name, pgp, subdomains, rng, nonce);
+  record_->setMasterPublicKey(edPubKey_);
 }
 
 
 
-void RecordManager::addOnionServiceKey(RecordPtr& record) const
+void RecordManager::addOnionServiceKey()
 {
   /*
   std::vector<std::string> text;
@@ -87,7 +109,6 @@ void RecordManager::addOnionServiceKey(RecordPtr& record) const
   printParagraphs(text);
 */
 
-  std::shared_ptr<Botan::RSA_PrivateKey> rsaSecKey;
   bool correctKey = true;
   do
   {
@@ -96,16 +117,16 @@ void RecordManager::addOnionServiceKey(RecordPtr& record) const
           return line == "-----END RSA PRIVATE KEY-----";
         });
 
-    rsaSecKey = Utils::decodeRSA(keyStr);
-    if (rsaSecKey->get_n().bits() != Const::RSA_KEY_LEN)
+    rsaSecKey_ = Utils::decodeRSA(keyStr);
+    if (rsaSecKey_->get_n().bits() != Const::RSA_KEY_LEN)
     {
       std::cerr << RED << "\nThis is not a 1024-bit RSA key!\n" << RESET_TERM;
       continue;
     }
 
-    record->setServicePublicKey(rsaSecKey);
-    std::cout << "\nThis key corresponds to " << record->computeOnion() << '\n';
-    std::cout << "Is this correct? [y] ";
+    record_->setServicePublicKey(rsaSecKey_);
+    std::cout << "\nThis key corresponds to " << record_->computeOnion();
+    std::cout << "\nIs this correct? [y] ";
 
     std::string line;
     char c;
@@ -116,130 +137,209 @@ void RecordManager::addOnionServiceKey(RecordPtr& record) const
 
   } while (!correctKey);
 
+  signRecord();
+}
+
+
+
+void RecordManager::signRecord()
+{
   // sign the Record fields
-  Botan::AutoSeeded_RNG rng;
-  Botan::PK_Signer signer(*rsaSecKey, "EMSA-PSS(SHA-384)");
-  auto scope = record->getServiceSigningScope();
+  static Botan::AutoSeeded_RNG rng;
+  Botan::PK_Signer signer(*rsaSecKey_, "EMSA-PSS(SHA-384)");
+  auto scope = record_->getServiceSigningScope();
   auto sigVector = signer.sign_message(scope, scope.size(), rng);
 
   // add the signature to the record
   RSA_SIGNATURE signature;
   std::copy(sigVector.begin(), sigVector.end(), signature.begin());
-  record->setServiceSignature(signature);
+  record_->setServiceSignature(signature);
 }
 
 
 
-void RecordManager::makeValid(RecordPtr& record,
-                              const EdDSA_KEY& edSecKey,
-                              int workers) const
+void RecordManager::makeValid(const WorkerDataPtr& wd)
 {
-  // get public key
-  EdDSA_KEY edPubKey;
-  ed25519_publickey(edSecKey.data(), edPubKey.data());
-  record->setMasterPublicKey(edPubKey);
+  /*
+    We are doing four things here:
+      1) Resigning the record data so that the signature is valid
+          The signature covers all record data except itself (of course)
+      2) Checking that the proof-of-work is valid
+          The PoW covers the edDSA key, edDSA signature, and the nonce
+      3) Tracking the nonce that will generate the most weighted record
+      4) Updating the RSA signature since a fast computer can max out the nonce
 
-  uint32_t nonce = 0;
+    The nonce is within the scope of the edDSA signature and the PoW, so we
+    have to keep it updated twice.
+  */
+
+  // proof-of-work check covers edDSA key, edDSA signature, and nonce
   PoW_SCOPE powScope;
-  std::copy(edPubKey.begin(), edPubKey.end(), powScope.begin());
-  uint8_t* powNonce = powScope.data() + powScope.size() - sizeof(uint32_t);
+  std::copy(edPubKey_.begin(), edPubKey_.end(), powScope.begin());
 
-  std::vector<uint8_t> edScope = record->asBytes(false);
-  uint8_t* edNonce = edScope.data() + edScope.size() - sizeof(uint32_t);
+  while (timeRemaining_)
+  {
+    // re-sign record probabilistically
+    // this will give us more entropy if the nonce is maxed
+    mutex_.lock();
+    signRecord();
+    wd->rsaSig = record_->getServiceSignature();
+    wd->edScope = record_->asBytes(false);
+    mutex_.unlock();
 
-  uint32_t bestNonce = 0;
-  double bestWeight = 0;
+    // get pointers to the nonces in each scope
+    uint8_t* edNonce = wd->edScope.data() + wd->edScope.size() - 4;
+    uint8_t* powNonce = powScope.data() + powScope.size() - 4;
 
+    for (wd->nonce = 0; timeRemaining_ && wd->nonce < UINT32_MAX; wd->nonce++)
+    {  // main working loop here
+
+      // copy the nonce into each of the scopes
+      memcpy(powNonce, &wd->nonce, sizeof(uint32_t));
+      memcpy(edNonce, &wd->nonce, sizeof(uint32_t));
+
+      // edDSA sign, place the signature in the PoW scope array
+      ed25519_sign(wd->edScope.data(), wd->edScope.size(), edSecKey_.data(),
+                   edPubKey_.data(), powScope.data() + Const::EdDSA_KEY_LEN);
+
+      // check the proof-of-work
+      if (Record::computePOW(powScope) < Const::PoW_THRESHOLD)
+      {  // below threshold, thus qualifying
+
+        // check the weight
+        const double weight = Record::computeWeight(powScope);
+        if (weight > wd->bestWeight)
+        {
+          wd->bestWeight = weight;
+          wd->bestNonce = wd->nonce;
+        }
+      }
+    }
+
+    if (timeRemaining_)
+      std::cout << "Worker " << wd->id << " updated RSA signature."
+                << std::endl;
+  }
+
+  mutex_.lock();
+  std::cout << "Worker " << wd->id << " is shutting down." << std::endl;
+  mutex_.unlock();
+}
+
+
+
+void RecordManager::startWorkers(size_t nWorkers)
+{
+  /*
   std::cout << "In this next step, we will use your master key to repeatedly "
                "sign your record.\nWe need to generate a valid record with a "
                "high Significance value.\nThe higher the Significance value, "
                "the higher the chance that the OnioNS network\nwill approve "
                "your registration. This may take some time...\n\n";
+*/
 
-  using namespace std::chrono;
-  auto st = steady_clock::now();
+  std::vector<std::thread> workers;
+  std::vector<std::shared_ptr<WorkerData>> wData;
 
-  while (true)
+  for (size_t j = 0; j < nWorkers; j++)
   {
-    nonce++;
-    memcpy(powNonce, &nonce, sizeof(uint32_t));
-    memcpy(edNonce, &nonce, sizeof(uint32_t));
-
-    ed25519_sign(edScope.data(), edScope.size(), edSecKey.data(),
-                 edPubKey.data(), powScope.data() + Const::EdDSA_KEY_LEN);
-
-    if (Record::computePOW(powScope) < Const::PoW_THRESHOLD)
-    {  // below threshold, thus qualifying
-
-      double weight = Record::computeWeight(powScope);
-      if (weight > bestWeight)
-      {
-        bestWeight = weight;
-        bestNonce = nonce;
-
-        Terminal::clearLine();
-        std::cout << "Iteration " << nonce << " found better weight " << weight
-                  << std::endl;
-
-        // update record
-        EdDSA_SIG edSig;
-        ed25519_sign(edScope.data(), edScope.size(), edSecKey.data(),
-                     edPubKey.data(), edSig.data());
-        record->setMasterSignature(edSig);
-        record->setNonce(nonce);
-      }
-    }
-    else if (nonce % 100000 == 0)
-    {
-      auto diff = duration_cast<milliseconds>(steady_clock::now() - st).count();
-      float seconds = diff / 1000.f;
-
-      Terminal::clearLine();
-      std::cout << seconds << " seconds elapsed, iteration " << nonce << ", "
-                << (nonce / seconds) << " i/sec";
-      std::cout.flush();
-    }
+    auto wd = std::make_shared<WorkerData>();
+    wd->id = j + 1;
+    wData.push_back(wd);
+    workers.push_back(std::thread([&]() { makeValid(wd); }));
   }
+
+  std::cout << nWorkers << " threads active." << std::endl;
+  std::for_each(workers.begin(), workers.end(),
+                [](std::thread& t) { t.detach(); });
+
+  showWorkerStatus(wData, nWorkers);
+  std::this_thread::sleep_for(std::chrono::milliseconds(250));
   /*
+    // update record
     EdDSA_SIG edSig;
     ed25519_sign(edScope.data(), edScope.size(), edSecKey.data(),
-    edPubKey.data(),
-                 edSig.data());
+                 edPubKey.data(), edSig.data());
+    record->setServiceSignature(rsaSig);
     record->setMasterSignature(edSig);
     record->setNonce(nonce);
 
-    std::cout << *record << '\n';
+    std::cout << *record_ << std::endl;
+  */
+}
 
-    std::cout << "Threshold: " << std::to_string(Const::POW_WORD_0) << '\n';
-    return record; */
+
+
+void RecordManager::showWorkerStatus(
+    const std::vector<std::shared_ptr<WorkerData>>& wData,
+    size_t nWorkers)
+{
+  const size_t SECONDS_ALLOWED = 15;  // 9 hours
+  const size_t UPDATE_DELAY = 2;
+  double sumLast = 0;
+
+  std::cout << "Elapsed Time | Current Speed | Average Speed | Total "
+               "Iterations | Best Weight"
+            << std::endl;
+
+  using namespace std::chrono;
+  std::chrono::seconds interval(UPDATE_DELAY);
+  steady_clock::time_point start = steady_clock::now();
+  // auto deadline = std::chrono::steady_clock::now();
+
+  std::cout.precision(11);
+
+  for (size_t j = 1; j <= SECONDS_ALLOWED; j++)
+  {
+    // deadline += interval;
+    std::this_thread::sleep_for(interval);
+
+    double sumN = 0;
+    double bestWeight = 0;
+    for (size_t w = 0; w < nWorkers; w++)
+    {
+      sumN += wData[w]->nonce;  // https://stackoverflow.com/questions/10330002/
+      if (wData[w]->bestWeight > bestWeight)
+        bestWeight = wData[w]->bestWeight;
+    }
+
+    int currentSpeed = static_cast<int>(round(sumN - sumLast) / UPDATE_DELAY);
+    int avgSpeed = static_cast<int>(round(sumN / (j * UPDATE_DELAY)));
+    sumLast = sumN;
+
+    Terminal::clearLine();
+    std::cout << "  " << std::setw(16) << getElapsedTime(start) << std::setw(15)
+              << currentSpeed << std::setw(17) << avgSpeed << std::setw(19)
+              << sumN << std::setw(20) << bestWeight;
+    std::cout.flush();
+  }
+
+  timeRemaining_ = false;
 }
 
 
 // ************************** UTILITIES ************************** //
 
 
-EdDSA_KEY RecordManager::generateSecretKey() const
+void RecordManager::generateSecretKey()
 {
   static Botan::AutoSeeded_RNG rng;
-
-  EdDSA_KEY key;
-  rng.randomize(key.data(), Const::EdDSA_KEY_LEN);
-  return key;
+  rng.randomize(edSecKey_.data(), Const::EdDSA_KEY_LEN);
+  ed25519_publickey(edSecKey_.data(), edPubKey_.data());
 }
 
 
 
-std::vector<std::string> RecordManager::toWords(
-    const std::vector<std::string>& wordList,
-    const EdDSA_KEY& sKey) const
+std::vector<std::string> RecordManager::edKey2Words(
+    const std::vector<std::string>& wordList) const
 {
   std::vector<std::string> results;
-  if (sKey.size() != Const::EdDSA_KEY_LEN)
+  if (edSecKey_.size() != Const::EdDSA_KEY_LEN)
     return results;
 
   for (size_t j = 0; j < Const::EdDSA_KEY_LEN; j += 2)
   {
-    uint16_t value = *reinterpret_cast<const uint16_t*>(sKey.data() + j);
+    uint16_t value = *reinterpret_cast<const uint16_t*>(edSecKey_.data() + j);
     results.push_back(wordList[value]);
   }
 
@@ -296,6 +396,20 @@ std::string RecordManager::readMultiLineUntil(
   return result;
 }
 
+
+
+std::string RecordManager::getElapsedTime(
+    const std::chrono::steady_clock::time_point& start)
+{
+  using namespace std::chrono;
+  static char timeChars[32];
+
+  system_clock::time_point tp_epoch;
+  system_clock::time_point diff(steady_clock::now() - start);
+  std::time_t tt = system_clock::to_time_t(diff);
+  std::strftime(timeChars, sizeof(timeChars), "%H:%M:%S", std::gmtime(&tt));
+  return std::string(timeChars);
+}
 
 
 /*

@@ -3,12 +3,15 @@
 #include "RecordManager.hpp"
 //#include <onions-common/Log.hpp>
 //#include <onions-common/Utils.hpp>
-//#include <botan/botan.h>
+#include <botan/botan.h>
 //#include <fstream>
+
+Botan::LibraryInitializer init("thread_safe");
 
 int main(int argc, char** argv)
 {
-  MenuSystem menu(std::make_shared<RecordManager>());
+  auto manager = std::make_shared<RecordManager>();
+  MenuSystem menu(manager);
   menu.mainMenu();
 }
 
@@ -18,7 +21,7 @@ int main(int argc, char** argv)
 #include <sys/stat.h>
 #include <pwd.h>
 
-// Botan::LibraryInitializer init("thread_safe");
+//
 
 void manageRecord(uint8_t, short);
 uint8_t countAvailableCPUs();

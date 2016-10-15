@@ -205,7 +205,7 @@ void RecordManager::makeValid(const WorkerDataPtr& wd)
                    edPubKey_.data(), powScope.data() + Const::EdDSA_KEY_LEN);
 
       // check the proof-of-work
-      if (Record::computePOW(powScope) < Const::PoW_THRESHOLD)
+      if (Record::computePOW(powScope) <= Const::PoW_THRESHOLD)
       {  // below threshold, thus qualifying
 
         wd->nQualified++;
@@ -222,7 +222,7 @@ void RecordManager::makeValid(const WorkerDataPtr& wd)
   }
 
   mutex_.lock();
-  std::cout << "\nWorker thread " << wd->id << " has finished." << std::endl;
+  std::cout << "\nWorker thread " << wd->id << " has finished.";
   mutex_.unlock();
 }
 
@@ -255,6 +255,7 @@ void RecordManager::startWorkers(uint32_t nWorkers)
 
   showWorkerStatus(wData, nWorkers);
   std::this_thread::sleep_for(std::chrono::milliseconds(250));
+  std::cout << std::endl;
 
 
   /*
@@ -281,7 +282,7 @@ void RecordManager::startWorkers(uint32_t nWorkers)
   EdDSA_SIG edSig;
   auto edScope = record_->asBytes(false);
   ed25519_sign(edScope.data(), edScope.size(), edSecKey_.data(),
-               edSecKey_.data(), edSig.data());
+               edPubKey_.data(), edSig.data());
   record_->setMasterSignature(edSig);
   std::cout << std::endl << *record_ << std::endl;
 

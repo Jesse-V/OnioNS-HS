@@ -19,7 +19,9 @@ class RecordManager
  private:
   struct WorkerData
   {
-    size_t id;
+    uint32_t id = -1;
+    uint32_t updatedRSA = -1;
+    uint32_t nQualified = 0;
     uint32_t nonce = 0;
     uint32_t bestNonce = 0;
     double bestWeight = 0;
@@ -31,10 +33,10 @@ class RecordManager
 
   void generateRecord();
   void addOnionServiceKey();
-  void signRecord();
-  void startWorkers(size_t);
+  RSA_SIGNATURE signRecord();
+  void startWorkers(uint32_t);
   void makeValid(const WorkerDataPtr&);
-  void showWorkerStatus(const std::vector<WorkerDataPtr>&, size_t);
+  void showWorkerStatus(const std::vector<WorkerDataPtr>&, uint32_t);
 
   void generateSecretKey();
   std::vector<std::string> getWordList() const;

@@ -142,7 +142,7 @@ void RecordManager::addOnionServiceKey()
 
 
 
-void RecordManager::signRecord()
+RSA_SIGNATURE RecordManager::signRecord()
 {
   // sign the Record fields
   static Botan::AutoSeeded_RNG rng;
@@ -153,7 +153,7 @@ void RecordManager::signRecord()
   // add the signature to the record
   RSA_SIGNATURE signature;
   std::copy(sigVector.begin(), sigVector.end(), signature.begin());
-  record_->setServiceSignature(signature);
+  return signature;
 }
 
 
@@ -177,23 +177,25 @@ void RecordManager::makeValid(const WorkerDataPtr& wd)
   PoW_SCOPE powScope;
   std::copy(edPubKey_.begin(), edPubKey_.end(), powScope.begin());
 
+  // get pointers to the nonces in each scope
+  wd->edScope = record_->asBytes(false);
+  uint8_t* edNonce = wd->edScope.data() + wd->edScope.size() - 4;
+  uint8_t* powNonce = powScope.data() + powScope.size() - 4;
+
   while (timeRemaining_)
   {
     // re-sign record probabilistically
     // this will give us more entropy if the nonce is maxed
     mutex_.lock();
-    signRecord();
-    wd->rsaSig = record_->getServiceSignature();
-    wd->edScope = record_->asBytes(false);
+    wd->rsaSig = signRecord();
+    wd->updatedRSA++;
+    std::copy(wd->rsaSig.begin(), wd->rsaSig.end(), wd->edScope.begin());
+    // std::cout << "\nWorker " << wd->id << " initialized."  << std::endl;
     mutex_.unlock();
 
-    // get pointers to the nonces in each scope
-    uint8_t* edNonce = wd->edScope.data() + wd->edScope.size() - 4;
-    uint8_t* powNonce = powScope.data() + powScope.size() - 4;
-
+    // main working loop
     for (wd->nonce = 0; timeRemaining_ && wd->nonce < UINT32_MAX; wd->nonce++)
-    {  // main working loop here
-
+    {
       // copy the nonce into each of the scopes
       memcpy(powNonce, &wd->nonce, sizeof(uint32_t));
       memcpy(edNonce, &wd->nonce, sizeof(uint32_t));
@@ -206,6 +208,8 @@ void RecordManager::makeValid(const WorkerDataPtr& wd)
       if (Record::computePOW(powScope) < Const::PoW_THRESHOLD)
       {  // below threshold, thus qualifying
 
+        wd->nQualified++;
+
         // check the weight
         const double weight = Record::computeWeight(powScope);
         if (weight > wd->bestWeight)
@@ -215,20 +219,16 @@ void RecordManager::makeValid(const WorkerDataPtr& wd)
         }
       }
     }
-
-    if (timeRemaining_)
-      std::cout << "Worker " << wd->id << " updated RSA signature."
-                << std::endl;
   }
 
   mutex_.lock();
-  std::cout << "Worker " << wd->id << " is shutting down." << std::endl;
+  std::cout << "\nWorker thread " << wd->id << " has finished." << std::endl;
   mutex_.unlock();
 }
 
 
 
-void RecordManager::startWorkers(size_t nWorkers)
+void RecordManager::startWorkers(uint32_t nWorkers)
 {
   /*
   std::cout << "In this next step, we will use your master key to repeatedly "
@@ -241,12 +241,12 @@ void RecordManager::startWorkers(size_t nWorkers)
   std::vector<std::thread> workers;
   std::vector<std::shared_ptr<WorkerData>> wData;
 
-  for (size_t j = 0; j < nWorkers; j++)
+  for (uint32_t j = 0; j < nWorkers; j++)
   {
     auto wd = std::make_shared<WorkerData>();
     wd->id = j + 1;
     wData.push_back(wd);
-    workers.push_back(std::thread([&]() { makeValid(wd); }));
+    workers.push_back(std::thread([wd, this]() { makeValid(wd); }));
   }
 
   std::cout << nWorkers << " threads active." << std::endl;
@@ -255,6 +255,36 @@ void RecordManager::startWorkers(size_t nWorkers)
 
   showWorkerStatus(wData, nWorkers);
   std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+
+  /*
+    auto bestResult = std::max_element(wData.begin(), wData.end(),
+                                        [](const std::shared_ptr<WorkerData>& a,
+                                           const std::shared_ptr<WorkerData>& b)
+    {
+                                          return a->bestWeight < b->bestWeight;
+                                        });*/
+
+  std::shared_ptr<WorkerData> bestResult;
+  double bestWeight = 0;
+  for (uint32_t j = 0; j < nWorkers; j++)
+  {
+    if (wData[j]->bestWeight > bestWeight)
+    {
+      bestResult = wData[j];
+      bestWeight = wData[j]->bestWeight;
+    }
+  }
+
+  record_->setNonce(bestResult->bestNonce);
+  record_->setServiceSignature(bestResult->rsaSig);
+  EdDSA_SIG edSig;
+  auto edScope = record_->asBytes(false);
+  ed25519_sign(edScope.data(), edScope.size(), edSecKey_.data(),
+               edSecKey_.data(), edSig.data());
+  record_->setMasterSignature(edSig);
+  std::cout << std::endl << *record_ << std::endl;
+
   /*
     // update record
     EdDSA_SIG edSig;
@@ -272,45 +302,49 @@ void RecordManager::startWorkers(size_t nWorkers)
 
 void RecordManager::showWorkerStatus(
     const std::vector<std::shared_ptr<WorkerData>>& wData,
-    size_t nWorkers)
+    uint32_t nWorkers)
 {
-  const size_t SECONDS_ALLOWED = 15;  // 9 hours
-  const size_t UPDATE_DELAY = 2;
+  const uint32_t SECONDS_ALLOWED = 25200;  // 7 = 25200, 9 = 32400
+  const uint32_t UPDATE_DELAY = 2;
   double sumLast = 0;
 
   std::cout << "Elapsed Time | Current Speed | Average Speed | Total "
-               "Iterations | Best Weight"
+               "Iterations | Found | Reset | Best Weight"
             << std::endl;
 
   using namespace std::chrono;
   std::chrono::seconds interval(UPDATE_DELAY);
   steady_clock::time_point start = steady_clock::now();
-  // auto deadline = std::chrono::steady_clock::now();
+  auto deadline = start;
 
-  std::cout.precision(11);
-
-  for (size_t j = 1; j <= SECONDS_ALLOWED; j++)
+  for (uint32_t j = 1; j <= SECONDS_ALLOWED / UPDATE_DELAY; j++)
   {
-    // deadline += interval;
-    std::this_thread::sleep_for(interval);
+    deadline += interval;
+    std::this_thread::sleep_until(deadline);
 
-    double sumN = 0;
+    double nonceSum = 0;
+    uint32_t qualifySum = 0;
+    uint32_t resetSum = 0;
     double bestWeight = 0;
     for (size_t w = 0; w < nWorkers; w++)
     {
-      sumN += wData[w]->nonce;  // https://stackoverflow.com/questions/10330002/
+      nonceSum += wData[w]->nonce + wData[w]->updatedRSA * UINT32_MAX;
+      qualifySum += wData[w]->nQualified;
+      resetSum += wData[w]->updatedRSA;
       if (wData[w]->bestWeight > bestWeight)
         bestWeight = wData[w]->bestWeight;
     }
 
-    int currentSpeed = static_cast<int>(round(sumN - sumLast) / UPDATE_DELAY);
-    int avgSpeed = static_cast<int>(round(sumN / (j * UPDATE_DELAY)));
-    sumLast = sumN;
+    int current = static_cast<int>(round(nonceSum - sumLast) / UPDATE_DELAY);
+    int avgSpeed = static_cast<int>(round(nonceSum / (j * UPDATE_DELAY)));
+    sumLast = nonceSum;
 
     Terminal::clearLine();
-    std::cout << "  " << std::setw(16) << getElapsedTime(start) << std::setw(15)
-              << currentSpeed << std::setw(17) << avgSpeed << std::setw(19)
-              << sumN << std::setw(20) << bestWeight;
+    std::cout.precision(11);
+    std::cout << "  " << std::setw(16) << getElapsedTime(start) << std::setw(16)
+              << current << std::setw(17) << avgSpeed << std::setw(17)
+              << nonceSum << std::setw(8) << qualifySum << std::setw(10)
+              << resetSum << std::setw(9) << std::setprecision(4) << bestWeight;
     std::cout.flush();
   }
 
